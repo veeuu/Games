@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Face Puzzle</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --surface2: #1a1a24;
+      --accent: #c8f045;
+      --accent2: #ff6b35;
+      --text: #f0ede8;
+      --muted: #6b6870;
+      --border: rgba(200,240,69,0.15);
+      --tile-gap: 3px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-x: hidden;
+    }
+
+    /* animated grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(200,240,69,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(200,240,69,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(ellipse at 60% 20%, rgba(200,240,69,0.04) 0%, transparent 50%),
+                  radial-gradient(ellipse at 20% 80%, rgba(255,107,53,0.04) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+      animation: bgPulse 8s ease-in-out infinite alternate;
+    }
+
+    @keyframes bgPulse {
+      from { transform: rotate(0deg) scale(1); }
+      to   { transform: rotate(3deg) scale(1.05); }
+    }
+
+    .wrap { position: relative; z-index: 1; width: 100%; max-width: 820px; padding: 0 20px; }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 28px 0 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 32px;
+    }
+
+    .logo { display: flex; align-items: baseline; gap: 10px; }
+    .logo-mark {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .logo-sub {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      font-weight: 300;
+      color: var(--muted);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+
+    .header-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      border: 1px solid var(--border);
+      padding: 4px 12px;
+      border-radius: 2px;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .main-layout {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 680px) {
+      .main-layout { grid-template-columns: 1fr; }
+    }
+
+    /* ── PUZZLE STAGE ── */
+    .stage {
+      aspect-ratio: 1;
+      position: relative;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    .stage-label {
+      position: absolute;
+      top: 12px; left: 12px;
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 3px;
+      color: var(--muted);
+      text-transform: uppercase;
+      z-index: 10;
+      background: rgba(10,10,15,0.7);
+      padding: 3px 8px;
+      border-radius: 2px;
+    }
+
+    /* Camera view inside stage */
+    #cam-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 5;
+      background: var(--surface);
+    }
+
+    #video {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      transform: scaleX(-1); /* mirror */
+    }
+
+    .cam-frame {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .cam-frame::before, .cam-frame::after {
+      content: '';
+      position: absolute;
+      width: 40px; height: 40px;
+      border-color: var(--accent);
+      border-style: solid;
+      border-width: 0;
+    }
+    .cam-frame::before { top: 16px; left: 16px; border-top-width: 2px; border-left-width: 2px; }
+    .cam-frame::after  { bottom: 16px; right: 16px; border-bottom-width: 2px; border-right-width: 2px; }
+
+    .cam-idle {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .cam-icon {
+      width: 72px; height: 72px;
+      border: 2px solid var(--border);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+      color: var(--muted);
+      animation: iconPulse 2s ease-in-out infinite;
+    }
+    @keyframes iconPulse {
+      0%,100% { border-color: rgba(200,240,69,0.15); }
+      50%      { border-color: rgba(200,240,69,0.5); }
+    }
+    .cam-idle p {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+
+    /* Countdown overlay */
+    #countdown-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(10,10,15,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      font-size: 120px;
+      font-weight: 800;
+      color: var(--accent);
+      text-shadow: 0 0 60px rgba(200,240,69,0.5);
+      animation: countPop 0.8s ease-out;
+    }
+    @keyframes countPop {
+      from { transform: scale(1.6); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+
+    /* Puzzle grid inside stage */
+    #puzzle-container {
+      position: absolute;
+      inset: 0;
+      display: none;
+      outline: none;
+    }
+
+    .tile {
+      position: absolute;
+      background-size: cover;
+      transition: top 0.12s cubic-bezier(.4,0,.2,1), left 0.12s cubic-bezier(.4,0,.2,1);
+      cursor: default;
+    }
+    .tile::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 1px solid rgba(0,0,0,0.4);
+      pointer-events: none;
+    }
+    .tile.empty { background: #050508 !important; }
+    .tile:not(.empty):hover { filter: brightness(1.08); }
+
+    /* tile number hint */
+    .tile .tile-num {
+      position: absolute;
+      bottom: 4px; right: 6px;
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      color: rgba(255,255,255,0.4);
+      line-height: 1;
+      display: none;
+    }
+    body.show-hints .tile .tile-num { display: block; }
+
+    /* ── WIN OVERLAY ── */
+    #win-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(10,10,15,0.92);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      z-index: 30;
+      text-align: center;
+      padding: 20px;
+    }
+    #win-overlay.show { display: flex; animation: winReveal 0.4s ease-out; }
+    @keyframes winReveal {
+      from { opacity: 0; transform: scale(0.95); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .win-badge {
+      font-size: 48px;
+      animation: winBounce 0.6s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    @keyframes winBounce {
+      0%,100% { transform: translateY(0); }
+      30%     { transform: translateY(-20px); }
+      60%     { transform: translateY(-8px); }
+    }
+    .win-title {
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -1px;
+    }
+    .win-stats {
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: 2px;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 16px;
+      background: var(--surface);
+    }
+
+    .panel-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 3px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    /* Stats */
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .stat-box {
+      background: var(--surface2);
+      border-radius: 3px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .stat-val {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--accent);
+      letter-spacing: -1px;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-key {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      margin-top: 2px;
+    }
+
+    /* Grid size select */
+    .grid-options {
+      display: flex;
+      gap: 6px;
+    }
+    .grid-opt {
+      flex: 1;
+      padding: 8px 4px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: transparent;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .grid-opt:hover { border-color: rgba(200,240,69,0.4); color: var(--text); }
+    .grid-opt.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #0a0a0f;
+      font-weight: 700;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 3px;
+      background: var(--accent);
+      color: #0a0a0f;
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: left 0.4s;
+    }
+    .btn-primary:hover::before { left: 100%; }
+    .btn-primary:hover { background: #d4f55a; transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { background: var(--surface2); color: var(--muted); cursor: not-allowed; transform: none; }
+    .btn-primary:disabled::before { display: none; }
+
+    .btn-ghost {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: transparent;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-ghost:hover { border-color: rgba(200,240,69,0.4); color: var(--text); }
+    .btn-ghost:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* Solve button special state */
+    .btn-ghost.solving {
+      border-color: var(--accent2);
+      color: var(--accent2);
+      animation: solvePulse 1s ease-in-out infinite;
+    }
+    @keyframes solvePulse {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.5; }
+    }
+
+    /* Solve progress bar */
+    #solve-bar {
+      height: 2px;
+      background: var(--surface2);
+      border-radius: 1px;
+      overflow: hidden;
+      display: none;
+    }
+    #solve-bar.show { display: block; }
+    #solve-bar-fill {
+      height: 100%;
+      background: var(--accent2);
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+
+    /* Keys hint */
+    .keys-hint {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .key {
+      background: var(--surface2);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 3px;
+      padding: 4px 8px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text);
+      box-shadow: 0 2px 0 rgba(0,0,0,0.4);
+    }
+    .key-sep { color: var(--muted); font-size: 11px; }
+
+    /* Status bar */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: var(--surface);
+    }
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .status-dot.active { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: dotBlink 1s infinite; }
+    .status-dot.success { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
+    @keyframes dotBlink { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .status-text {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+    }
+
+    /* toggle hints */
+    .hint-toggle {
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+    }
+    .toggle-switch {
+      width: 32px; height: 18px;
+      background: var(--surface2);
+      border-radius: 9px;
+      border: 1px solid var(--border);
+      position: relative;
+      transition: background 0.2s;
+    }
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 12px; height: 12px;
+      background: var(--muted);
+      border-radius: 50%;
+      top: 2px; left: 2px;
+      transition: all 0.2s;
+    }
+    .hint-toggle.on .toggle-switch { background: rgba(200,240,69,0.2); border-color: var(--accent); }
+    .hint-toggle.on .toggle-switch::after { background: var(--accent); left: 16px; }
+    .hint-toggle span {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+
+    /* confetti particles */
+    .confetti {
+      position: absolute;
+      width: 6px; height: 6px;
+      border-radius: 1px;
+      animation: confettiFall linear forwards;
+      pointer-events: none;
+      z-index: 25;
+    }
+    @keyframes confettiFall {
+      0%   { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(420px) rotate(720deg); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="logo">
+      <div class="logo-mark">FACE/PUZZLE</div>
+      <div class="logo-sub">v2.0</div>
+    </div>
+    <div class="header-tag">sliding game</div>
+  </header>
+
+  <div class="main-layout">
+
+    <!-- STAGE -->
+    <div class="stage" id="stage">
+      <div class="stage-label" id="stage-label">CAMERA</div>
+
+      <!-- Camera / idle view -->
+      <div id="cam-overlay">
+        <video id="video" autoplay playsinline></video>
+        <div class="cam-frame"></div>
+        <div class="cam-idle" id="cam-idle">
+          <div class="cam-icon">📷</div>
+          <p>camera is off</p>
+        </div>
+      </div>
+
+      <!-- Countdown -->
+      <div id="countdown-overlay"></div>
+
+      <!-- Puzzle -->
+      <div id="puzzle-container" tabindex="0"></div>
+
+      <!-- Win overlay -->
+      <div id="win-overlay">
+        <div class="win-badge">🎉</div>
+        <div class="win-title">SOLVED!</div>
+        <div class="win-stats" id="win-stats"></div>
+      </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+
+      <!-- Status -->
+      <div class="status-bar">
+        <div class="status-dot" id="status-dot"></div>
+        <div class="status-text" id="status-text">open camera to begin</div>
+      </div>
+
+      <!-- Stats -->
+      <div class="panel">
+        <div class="panel-label">Stats</div>
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="stat-val" id="stat-moves">0</div>
+            <div class="stat-key">moves</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val" id="stat-time">0s</div>
+            <div class="stat-key">time</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid Size -->
+      <div class="panel">
+        <div class="panel-label">Grid Size</div>
+        <div class="grid-options">
+          <div class="grid-opt" data-n="3">3×3</div>
+          <div class="grid-opt active" data-n="4">4×4</div>
+          <div class="grid-opt" data-n="5">5×5</div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="panel">
+        <div class="panel-label">Controls</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button class="btn-primary" id="btn-camera">Open Camera</button>
+          <button class="btn-primary" id="btn-capture" disabled>📸 Snap Photo</button>
+          <button class="btn-primary" id="btn-start" disabled>Start Puzzle</button>
+          <button class="btn-ghost"   id="btn-reset"  disabled>Shuffle Again</button>
+          <button class="btn-ghost"   id="btn-solve" disabled>🤖 Auto Solve</button>
+          <button class="btn-ghost"   id="btn-retake" disabled>Retake Photo</button>
+        </div>
+        <div id="solve-bar" style="margin-top:8px;"><div id="solve-bar-fill"></div></div>
+      </div>
+
+      <!-- Keyboard -->
+      <div class="panel">
+        <div class="panel-label">Controls</div>
+        <div class="keys-hint">
+          <span class="key">↑</span>
+          <span class="key">↓</span>
+          <span class="key">←</span>
+          <span class="key">→</span>
+          <span class="key-sep">arrow keys</span>
+        </div>
+        <div style="margin-top:12px;">
+          <div class="hint-toggle" id="hint-toggle">
+            <div class="toggle-switch"></div>
+            <span>show tile numbers</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  const video       = document.getElementById('video');
+  const camOverlay  = document.getElementById('cam-overlay');
+  const camIdle     = document.getElementById('cam-idle');
+  const cntOverlay  = document.getElementById('countdown-overlay');
+  const puzzleEl    = document.getElementById('puzzle-container');
+  const winOverlay  = document.getElementById('win-overlay');
+  const winStats    = document.getElementById('win-stats');
+  const stageLabel  = document.getElementById('stage-label');
+  const statusDot   = document.getElementById('status-dot');
+  const statusText  = document.getElementById('status-text');
+  const statMoves   = document.getElementById('stat-moves');
+  const statTime    = document.getElementById('stat-time');
+  const btnCamera   = document.getElementById('btn-camera');
+  const btnCapture  = document.getElementById('btn-capture');
+  const btnStart    = document.getElementById('btn-start');
+  const btnReset    = document.getElementById('btn-reset');
+  const btnRetake   = document.getElementById('btn-retake');
+  const btnSolve    = document.getElementById('btn-solve');
+  const solveBar    = document.getElementById('solve-bar');
+  const solveBarFill= document.getElementById('solve-bar-fill');
+  const hintToggle  = document.getElementById('hint-toggle');
+  let solveAnimation = null;
+
+  const PUZZLE_SIZE = 480;
+  let stream = null, capturedURL = null;
+  let N = 4, tileSize = 0;
+  let grid = [], emptyIdx = 0, moves = 0, elapsed = 0, timerInterval = null, gameOver = false;
+
+  function setStatus(msg, state='idle') {
+    statusText.textContent = msg;
+    statusDot.className = 'status-dot' + (state==='active' ? ' active' : state==='success' ? ' success' : '');
+  }
+
+  // Grid size picker
+  document.querySelectorAll('.grid-opt').forEach(el => {
+    el.addEventListener('click', () => {
+      if (capturedURL && !btnStart.disabled) {
+        document.querySelectorAll('.grid-opt').forEach(e => e.classList.remove('active'));
+        el.classList.add('active');
+        N = parseInt(el.dataset.n);
+      } else if (!capturedURL) {
+        document.querySelectorAll('.grid-opt').forEach(e => e.classList.remove('active'));
+        el.classList.add('active');
+        N = parseInt(el.dataset.n);
+      }
+    });
+  });
+
+  // Hint toggle
+  hintToggle.addEventListener('click', () => {
+    hintToggle.classList.toggle('on');
+    document.body.classList.toggle('show-hints');
+  });
+
+  // Camera
+  btnCamera.addEventListener('click', async () => {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'user', width:640, height:480 } });
+      video.srcObject = stream;
+      video.style.display = 'block';
+      camIdle.style.display = 'none';
+      btnCamera.disabled = true;
+      btnCapture.disabled = false;
+      stageLabel.textContent = 'LIVE';
+      setStatus('camera ready — snap when ready', 'active');
+    } catch(e) {
+      setStatus('camera unavailable');
+    }
+  });
+
+  // Capture with countdown
+  btnCapture.addEventListener('click', () => {
+    btnCapture.disabled = true;
+    let count = 3;
+    cntOverlay.style.display = 'flex';
+    cntOverlay.textContent = count;
+    const tick = setInterval(() => {
+      count--;
+      if (count > 0) {
+        cntOverlay.style.animation = 'none';
+        cntOverlay.offsetHeight; // reflow
+        cntOverlay.style.animation = 'countPop 0.8s ease-out';
+        cntOverlay.textContent = count;
+      } else {
+        clearInterval(tick);
+        cntOverlay.style.display = 'none';
+        doCapture();
+      }
+    }, 900);
+  });
+
+  function doCapture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = PUZZLE_SIZE; canvas.height = PUZZLE_SIZE;
+    const ctx = canvas.getContext('2d');
+    const vw = video.videoWidth || 480, vh = video.videoHeight || 480;
+    const side = Math.min(vw, vh);
+    const sx = (vw - side) / 2, sy = (vh - side) / 2;
+    ctx.save();
+    ctx.translate(PUZZLE_SIZE, 0); ctx.scale(-1, 1);
+    ctx.drawImage(video, sx, sy, side, side, 0, 0, PUZZLE_SIZE, PUZZLE_SIZE);
+    ctx.restore();
+    capturedURL = canvas.toDataURL('image/jpeg', 0.92);
+    stream.getTracks().forEach(t => t.stop());
+    video.style.display = 'none';
+
+    // show preview
+    const preview = document.createElement('img');
+    preview.src = capturedURL;
+    preview.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+    camOverlay.appendChild(preview);
+
+    stageLabel.textContent = 'PHOTO';
+    btnStart.disabled = false;
+    btnRetake.disabled = false;
+    setStatus('photo taken! — start the puzzle', 'active');
+  }
+
+  btnStart.addEventListener('click', () => {
+    N = parseInt(document.querySelector('.grid-opt.active').dataset.n);
+    buildPuzzle();
+    btnStart.disabled = true;
+    btnReset.disabled = false;
+    btnSolve.disabled = false;
+  });
+
+  btnReset.addEventListener('click', () => {
+    stopSolve();
+    buildPuzzle();
+    puzzleEl.focus();
+  });
+
+  btnRetake.addEventListener('click', () => {
+    // reset
+    capturedURL = null;
+    puzzleEl.style.display = 'none';
+    winOverlay.classList.remove('show');
+    camOverlay.style.display = 'flex';
+    const imgs = camOverlay.querySelectorAll('img');
+    imgs.forEach(i => i.remove());
+    video.style.display = 'none';
+    camIdle.style.display = 'flex';
+    btnCamera.disabled = false;
+    btnCapture.disabled = true;
+    btnStart.disabled = true;
+    btnReset.disabled = true;
+    btnRetake.disabled = true;
+    btnSolve.disabled = true;
+    stopSolve();
+    clearInterval(timerInterval);
+    statMoves.textContent = '0';
+    statTime.textContent = '0s';
+    stageLabel.textContent = 'CAMERA';
+    setStatus('open camera to begin');
+  });
+
+  function buildPuzzle() {
+    clearInterval(timerInterval);
+    moves = 0; elapsed = 0; gameOver = false;
+    statMoves.textContent = '0';
+    statTime.textContent = '0s';
+    winOverlay.classList.remove('show');
+
+    tileSize = PUZZLE_SIZE / N;
+    const total = N * N;
+    grid = Array.from({ length: total }, (_, i) => i);
+    emptyIdx = total - 1;
+
+    // shuffle via random legal moves
+    for (let i = 0; i < 1200; i++) {
+      const nb = getNeighbors(emptyIdx);
+      const pick = nb[Math.floor(Math.random() * nb.length)];
+      [grid[emptyIdx], grid[pick]] = [grid[pick], grid[emptyIdx]];
+      emptyIdx = pick;
+    }
+
+    renderTiles();
+    camOverlay.style.display = 'none';
+    puzzleEl.style.display = 'block';
+    stageLabel.textContent = `${N}×${N} PUZZLE`;
+    setStatus('use arrow keys to slide tiles', 'active');
+    puzzleEl.focus();
+
+    timerInterval = setInterval(() => {
+      elapsed++;
+      statTime.textContent = elapsed < 60 ? elapsed + 's' : Math.floor(elapsed/60) + 'm' + (elapsed%60) + 's';
+    }, 1000);
+  }
+
+  function getNeighbors(pos) {
+    const r = Math.floor(pos / N), c = pos % N, nb = [];
+    if (r > 0)     nb.push(pos - N);
+    if (r < N - 1) nb.push(pos + N);
+    if (c > 0)     nb.push(pos - 1);
+    if (c < N - 1) nb.push(pos + 1);
+    return nb;
+  }
+
+  function renderTiles() {
+    puzzleEl.innerHTML = '';
+    puzzleEl.style.width = PUZZLE_SIZE + 'px';
+    puzzleEl.style.height = PUZZLE_SIZE + 'px';
+    const total = N * N;
+    for (let pos = 0; pos < total; pos++) {
+      const val = grid[pos];
+      const div = document.createElement('div');
+      div.className = 'tile' + (val === total - 1 ? ' empty' : '');
+      div.style.width = tileSize + 'px';
+      div.style.height = tileSize + 'px';
+      div.style.top  = Math.floor(pos / N) * tileSize + 'px';
+      div.style.left = (pos % N) * tileSize + 'px';
+      div.dataset.val = val;
+      if (val !== total - 1) {
+        const sr = Math.floor(val / N), sc = val % N;
+        div.style.backgroundImage = `url(${capturedURL})`;
+        div.style.backgroundSize  = `${PUZZLE_SIZE}px ${PUZZLE_SIZE}px`;
+        div.style.backgroundPosition = `-${sc * tileSize}px -${sr * tileSize}px`;
+        const num = document.createElement('span');
+        num.className = 'tile-num';
+        num.textContent = val + 1;
+        div.appendChild(num);
+      }
+      puzzleEl.appendChild(div);
+    }
+  }
+
+  // swap helper
+  function swapGrid(a, b) {
+    const tmp = grid[a]; grid[a] = grid[b]; grid[b] = tmp;
+  }
+
+  function doMove(targetPos) {
+    if (gameOver) return;
+    swapGrid(emptyIdx, targetPos);
+    const allTiles = puzzleEl.querySelectorAll('.tile');
+    allTiles.forEach(tile => {
+      const val = parseInt(tile.dataset.val);
+      const pos = grid.indexOf(val);
+      tile.style.top  = Math.floor(pos / N) * tileSize + 'px';
+      tile.style.left = (pos % N) * tileSize + 'px';
+    });
+    emptyIdx = targetPos;
+    moves++;
+    statMoves.textContent = moves;
+    checkWin();
+  }
+
+  document.addEventListener('keydown', e => {
+    if (!capturedURL || btnStart.disabled === false) return;
+    if (!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) return;
+    e.preventDefault();
+    const er = Math.floor(emptyIdx / N), ec = emptyIdx % N;
+    let target = -1;
+    if (e.key === 'ArrowUp'    && er > 0)     target = emptyIdx - N;
+    if (e.key === 'ArrowDown'  && er < N - 1) target = emptyIdx + N;
+    if (e.key === 'ArrowLeft'  && ec > 0)     target = emptyIdx - 1;
+    if (e.key === 'ArrowRight' && ec < N - 1) target = emptyIdx + 1;
+    if (target >= 0) doMove(target);
+  });
+
+  puzzleEl.addEventListener('click', e => {
+    const tile = e.target.closest('.tile');
+    if (!tile || tile.classList.contains('empty')) return;
+    const allTiles = Array.from(puzzleEl.querySelectorAll('.tile'));
+    const pos = grid.indexOf(parseInt(tile.dataset.val));
+    if (getNeighbors(emptyIdx).includes(pos)) doMove(pos);
+  });
+
+  function checkWin() {
+    const total = N * N;
+    for (let i = 0; i < total; i++) if (grid[i] !== i) return;
+    gameOver = true;
+    clearInterval(timerInterval);
+    setStatus('puzzle solved!', 'success');
+    winStats.textContent = `${moves} moves · ${statTime.textContent}`;
+    spawnConfetti();
+    setTimeout(() => winOverlay.classList.add('show'), 400);
+  }
+
+  function spawnConfetti() {
+    const colors = ['#c8f045','#ff6b35','#fff','#4ade80','#f472b6'];
+    const stage = document.getElementById('stage');
+    for (let i = 0; i < 40; i++) {
+      const el = document.createElement('div');
+      el.className = 'confetti';
+      el.style.background = colors[Math.floor(Math.random()*colors.length)];
+      el.style.left = Math.random()*100 + '%';
+      el.style.top = '0';
+      el.style.animationDuration = (1.5 + Math.random()*2) + 's';
+      el.style.animationDelay = (Math.random()*0.8) + 's';
+      el.style.width = el.style.height = (4+Math.random()*6) + 'px';
+      stage.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+    }
+  }
+
+  // ── AUTO SOLVER (IDA* with Manhattan distance heuristic) ────────────────
+
+  function stopSolve() {
+    if (solveAnimation) { clearTimeout(solveAnimation); solveAnimation = null; }
+    btnSolve.textContent = '🤖 Auto Solve';
+    btnSolve.classList.remove('solving');
+    solveBar.classList.remove('show');
+  }
+
+  btnSolve.addEventListener('click', () => {
+    if (btnSolve.classList.contains('solving')) { stopSolve(); setStatus('solve cancelled', 'active'); return; }
+    setStatus('computing solution…', 'active');
+    btnSolve.textContent = '⏹ Stop';
+    btnSolve.classList.add('solving');
+    solveBar.classList.add('show');
+    solveBarFill.style.width = '0%';
+
+    // run solver in a tiny async chunk so UI updates first
+    setTimeout(() => {
+      const solution = idaStar([...grid], N);
+      if (!solution) {
+        stopSolve();
+        setStatus('no solution found', 'idle');
+        return;
+      }
+      animateSolution(solution);
+    }, 50);
+  });
+
+  // Manhattan distance heuristic
+  function manhattan(g, n) {
+    let h = 0;
+    const total = n * n;
+    for (let i = 0; i < total; i++) {
+      const v = g[i];
+      if (v === total - 1) continue; // skip blank
+      const goalR = Math.floor(v / n), goalC = v % n;
+      const curR  = Math.floor(i / n), curC  = i % n;
+      h += Math.abs(goalR - curR) + Math.abs(goalC - curC);
+    }
+    return h;
+  }
+
+  function idaStar(initGrid, n) {
+    const total = n * n;
+    const goal  = Array.from({ length: total }, (_, i) => i);
+    let bound   = manhattan(initGrid, n);
+    const path  = [{ g: initGrid, empty: initGrid.indexOf(total - 1) }];
+
+    for (let iter = 0; iter < 200; iter++) {
+      const result = search(path, 0, bound, n, total);
+      if (result === 'FOUND') {
+        // extract moves (empty positions)
+        return path.slice(1).map(s => s.empty);
+      }
+      if (result === Infinity) return null;
+      bound = result;
+    }
+    return null;
+  }
+
+  function search(path, g, bound, n, total) {
+    const node = path[path.length - 1];
+    const f = g + manhattan(node.g, n);
+    if (f > bound) return f;
+    if (node.g.every((v, i) => v === i)) return 'FOUND';
+
+    let min = Infinity;
+    const neighbors = getNeighborsOf(node.empty, n);
+    for (const nb of neighbors) {
+      // avoid going back
+      if (path.length > 1 && path[path.length - 2].empty === nb) continue;
+      const newG = [...node.g];
+      newG[node.empty] = newG[nb];
+      newG[nb] = total - 1;
+      path.push({ g: newG, empty: nb });
+      const t = search(path, g + 1, bound, n, total);
+      if (t === 'FOUND') return 'FOUND';
+      if (t < min) min = t;
+      path.pop();
+    }
+    return min;
+  }
+
+  function getNeighborsOf(pos, n) {
+    const r = Math.floor(pos / n), c = pos % n, nb = [];
+    if (r > 0)     nb.push(pos - n);
+    if (r < n - 1) nb.push(pos + n);
+    if (c > 0)     nb.push(pos - 1);
+    if (c < n - 1) nb.push(pos + 1);
+    return nb;
+  }
+
+  function animateSolution(moves) {
+    const total = moves.length;
+    let step = 0;
+    setStatus(`solving… 0 / ${total} moves`, 'active');
+
+    function next() {
+      if (step >= total) {
+        stopSolve();
+        setStatus('auto-solved!', 'success');
+        return;
+      }
+      doMove(moves[step]);
+      step++;
+      solveBarFill.style.width = (step / total * 100) + '%';
+      setStatus(`solving… ${step} / ${total} moves`, 'active');
+      // speed: faster for bigger puzzles
+      const delay = N <= 3 ? 220 : N === 4 ? 160 : 100;
+      solveAnimation = setTimeout(next, delay);
+    }
+    next();
+  }
+
+  // play again from win screen
+  winOverlay.querySelector('.win-badge').addEventListener('click', () => {
+    winOverlay.classList.remove('show');
+    buildPuzzle();
+  });
+  winOverlay.addEventListener('click', e => {
+    if (e.target === winOverlay) { winOverlay.classList.remove('show'); buildPuzzle(); }
+  });
+</script>
+</body>
+</html>
