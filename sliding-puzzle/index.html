@@ -112,6 +112,14 @@
 
     @media (max-width: 680px) {
       .main-layout { grid-template-columns: 1fr; }
+      .wrap { padding: 0 12px; }
+      header { padding: 16px 0 14px; margin-bottom: 16px; }
+      .logo-mark { font-size: 22px; }
+      .sidebar { gap: 10px; }
+      .panel { padding: 12px; }
+      .stat-val { font-size: 22px; }
+      .btn-primary { padding: 12px; font-size: 13px; }
+      .btn-ghost { padding: 9px; }
     }
 
     /* ── PUZZLE STAGE ── */
@@ -677,6 +685,11 @@
   let N = 4, tileSize = 0;
   let grid = [], emptyIdx = 0, moves = 0, elapsed = 0, timerInterval = null, gameOver = false;
 
+  function getPuzzleSize() {
+    const stage = document.getElementById('stage');
+    return stage.clientWidth || 480;
+  }
+
   function setStatus(msg, state='idle') {
     statusText.textContent = msg;
     statusDot.className = 'status-dot' + (state==='active' ? ' active' : state==='success' ? ' success' : '');
@@ -741,15 +754,16 @@
   });
 
   function doCapture() {
+    const PS = getPuzzleSize();
     const canvas = document.createElement('canvas');
-    canvas.width = PUZZLE_SIZE; canvas.height = PUZZLE_SIZE;
+    canvas.width = PS; canvas.height = PS;
     const ctx = canvas.getContext('2d');
     const vw = video.videoWidth || 480, vh = video.videoHeight || 480;
     const side = Math.min(vw, vh);
     const sx = (vw - side) / 2, sy = (vh - side) / 2;
     ctx.save();
-    ctx.translate(PUZZLE_SIZE, 0); ctx.scale(-1, 1);
-    ctx.drawImage(video, sx, sy, side, side, 0, 0, PUZZLE_SIZE, PUZZLE_SIZE);
+    ctx.translate(PS, 0); ctx.scale(-1, 1);
+    ctx.drawImage(video, sx, sy, side, side, 0, 0, PS, PS);
     ctx.restore();
     capturedURL = canvas.toDataURL('image/jpeg', 0.92);
     stream.getTracks().forEach(t => t.stop());
@@ -812,7 +826,8 @@
     statTime.textContent = '0s';
     winOverlay.classList.remove('show');
 
-    tileSize = PUZZLE_SIZE / N;
+    const PS = getPuzzleSize();
+    tileSize = PS / N;
     const total = N * N;
     grid = Array.from({ length: total }, (_, i) => i);
     emptyIdx = total - 1;
@@ -848,9 +863,10 @@
   }
 
   function renderTiles() {
+    const PS = getPuzzleSize();
     puzzleEl.innerHTML = '';
-    puzzleEl.style.width = PUZZLE_SIZE + 'px';
-    puzzleEl.style.height = PUZZLE_SIZE + 'px';
+    puzzleEl.style.width = PS + 'px';
+    puzzleEl.style.height = PS + 'px';
     const total = N * N;
     for (let pos = 0; pos < total; pos++) {
       const val = grid[pos];
@@ -864,7 +880,7 @@
       if (val !== total - 1) {
         const sr = Math.floor(val / N), sc = val % N;
         div.style.backgroundImage = `url(${capturedURL})`;
-        div.style.backgroundSize  = `${PUZZLE_SIZE}px ${PUZZLE_SIZE}px`;
+        div.style.backgroundSize  = `${PS}px ${PS}px`;
         div.style.backgroundPosition = `-${sc * tileSize}px -${sr * tileSize}px`;
         const num = document.createElement('span');
         num.className = 'tile-num';
@@ -922,10 +938,11 @@
     for (let i = 0; i < total; i++) if (grid[i] !== i) return;
     gameOver = true;
     clearInterval(timerInterval);
+    stopSolve();
     setStatus('puzzle solved!', 'success');
     winStats.textContent = `${moves} moves · ${statTime.textContent}`;
     spawnConfetti();
-    setTimeout(() => winOverlay.classList.add('show'), 400);
+    setTimeout(() => winOverlay.classList.add('show'), 300);
   }
 
   function spawnConfetti() {
@@ -1067,6 +1084,39 @@
   });
   winOverlay.addEventListener('click', e => {
     if (e.target === winOverlay) { winOverlay.classList.remove('show'); buildPuzzle(); }
+  });
+
+  // ── TOUCH SWIPE SUPPORT ─────────────────────────────────────────────────
+  let touchStartX = 0, touchStartY = 0;
+  puzzleEl.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  puzzleEl.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return; // tap, not swipe
+    const er = Math.floor(emptyIdx / N), ec = emptyIdx % N;
+    let target = -1;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      // horizontal swipe — move tile in opposite direction into empty
+      if (dx > 0 && ec > 0)     target = emptyIdx - 1; // swipe right → move left tile
+      if (dx < 0 && ec < N - 1) target = emptyIdx + 1; // swipe left → move right tile
+    } else {
+      if (dy > 0 && er > 0)     target = emptyIdx - N; // swipe down → move top tile
+      if (dy < 0 && er < N - 1) target = emptyIdx + N; // swipe up → move bottom tile
+    }
+    if (target >= 0) doMove(target);
+  }, { passive: true });
+
+  // ── RESIZE: re-render puzzle if window resizes ───────────────────────────
+  window.addEventListener('resize', () => {
+    if (capturedURL && puzzleEl.style.display === 'block' && !gameOver) {
+      const PS = getPuzzleSize();
+      tileSize = PS / N;
+      renderTiles();
+    }
   });
 </script>
 </body>
