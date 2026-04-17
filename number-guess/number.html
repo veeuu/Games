@@ -423,7 +423,7 @@ function checkGuess(){
   let hintText, chipClass='';
 
   if(diff<=Math.ceil(range*0.04)){hintText=`🔥 Soooo close! ${guess>secret?'↓':'↑'}`;chipClass='close';}
-  else if(diff<=Math.ceil(range*0.10)){hintText=`🌡️ Very warm! ${guess>secret?'Go lower ↓':'Go higher ↑'}`;chipClass='close';}
+  else if(diff<=Math.ceil(range*0.10)){hintText=`🌡️ Very close! ${guess>secret?'Go lower ↓':'Go higher ↑'}`;chipClass='close';}
   else if(diff<=Math.ceil(range*0.25)){hintText=guess>secret?`📈 A bit high — come down`:`📉 A bit low — go up`;chipClass=dir;}
   else{hintText=guess>secret?`📈 Too high! Way off.`:`📉 Too low! Way off.`;chipClass=dir;}
 
