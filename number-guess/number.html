@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Guess It ✦</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#07070f;
+  --surf:#111122;
+  --surf2:#181830;
+  --border:#25254a;
+  --border2:#3f3f7a;
+  --text:#f0eeff;
+  --muted:#6060a0;
+  --a1:#c084fc;
+  --a2:#38bdf8;
+  --a3:#fb7185;
+  --a4:#34d399;
+  --a5:#fbbf24;
+  --font:'Syne',sans-serif;
+  --mono:'DM Mono',monospace;
+}
+html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--font);overflow-x:hidden;}
+
+/* BLOBS */
+.blob{position:fixed;border-radius:50%;filter:blur(100px);opacity:.1;pointer-events:none;z-index:0;animation:bfloat 10s ease-in-out infinite;}
+.b1{width:500px;height:500px;background:var(--a1);top:-150px;left:-120px;animation-delay:0s;}
+.b2{width:400px;height:400px;background:var(--a2);bottom:-100px;right:-100px;animation-delay:-4s;}
+.b3{width:300px;height:300px;background:var(--a3);top:40%;left:55%;animation-delay:-7s;}
+@keyframes bfloat{0%,100%{transform:translate(0,0);}33%{transform:translate(25px,-25px);}66%{transform:translate(-18px,18px);}}
+
+/* NOISE */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");opacity:.035;pointer-events:none;z-index:0;}
+
+/* WRAPPER */
+.wrap{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px 48px;}
+
+/* SCREENS */
+.screen{display:none;width:100%;max-width:480px;animation:fadeUp .55s cubic-bezier(.22,1,.36,1) both;}
+.screen.active{display:flex;flex-direction:column;align-items:center;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(28px);}to{opacity:1;transform:translateY(0);}}
+
+/* SETUP SCREEN */
+.logo-tag{font-family:var(--mono);font-size:11px;letter-spacing:3px;color:var(--a2);border:1px solid var(--a2);border-radius:100px;padding:4px 14px;margin-bottom:16px;opacity:.8;}
+.big-title{font-size:clamp(48px,12vw,80px);font-weight:800;line-height:.95;letter-spacing:-3px;text-align:center;margin-bottom:8px;}
+.big-title .outline{-webkit-text-stroke:2px var(--a1);-webkit-text-fill-color:transparent;}
+.big-title .fill{background:linear-gradient(135deg,var(--a1),var(--a2),var(--a3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.sub{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:center;margin-bottom:36px;}
+
+.setup-card{background:var(--surf);border:1px solid var(--border);border-radius:24px;padding:32px;width:100%;position:relative;overflow:hidden;}
+.setup-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--a1),var(--a2),var(--a3));}
+.field-label{font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;display:block;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+.field{width:100%;}
+input[type=number],input[type=text]{
+  width:100%;background:var(--surf2);border:1px solid var(--border);border-radius:12px;
+  color:var(--text);font-family:var(--font);font-size:16px;font-weight:700;
+  padding:13px 16px;outline:none;transition:border-color .2s,box-shadow .2s;
+  -moz-appearance:textfield;
+}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
+input:focus{border-color:var(--a1);box-shadow:0 0 0 3px rgba(192,132,252,.15);}
+input.err{border-color:var(--a3);box-shadow:0 0 0 3px rgba(251,113,133,.15);animation:shake .4s ease;}
+input.ok{border-color:var(--a4);box-shadow:0 0 0 3px rgba(52,211,153,.15);}
+@keyframes shake{0%,100%{transform:translateX(0);}20%{transform:translateX(-8px);}40%{transform:translateX(8px);}60%{transform:translateX(-5px);}80%{transform:translateX(5px);}}
+
+.max-row{margin-bottom:24px;}
+.attempts-row{margin-bottom:28px;}
+
+.range-preview{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:center;margin-bottom:24px;padding:10px;background:var(--surf2);border-radius:10px;}
+.range-preview b{color:var(--a2);}
+
+.start-btn{
+  width:100%;font-family:var(--font);font-weight:800;font-size:16px;
+  background:linear-gradient(135deg,var(--a1),var(--a3));color:var(--bg);
+  border:none;border-radius:14px;padding:16px;cursor:pointer;
+  transition:opacity .2s,transform .15s;position:relative;overflow:hidden;
+}
+.start-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--a2),var(--a1));opacity:0;transition:opacity .3s;}
+.start-btn:hover::before{opacity:1;}
+.start-btn:active{transform:scale(.97);}
+.start-btn span{position:relative;z-index:1;}
+
+/* GAME SCREEN */
+.game-header{text-align:center;margin-bottom:24px;width:100%;}
+.game-tag{font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--muted);margin-bottom:6px;}
+.range-badge{font-size:22px;font-weight:800;letter-spacing:-1px;background:linear-gradient(135deg,var(--a1),var(--a2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+
+/* STATS */
+.stats-row{display:flex;gap:10px;margin-bottom:22px;width:100%;justify-content:center;flex-wrap:wrap;}
+.stat{background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:10px 20px;text-align:center;position:relative;overflow:hidden;}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat.s-att::before{background:var(--a1);}
+.stat.s-best::before{background:var(--a5);}
+.stat.s-score::before{background:var(--a4);}
+.stat-lbl{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:3px;}
+.stat-val{font-size:20px;font-weight:800;letter-spacing:-1px;}
+.stat.s-att .stat-val{color:var(--a1);}
+.stat.s-best .stat-val{color:var(--a5);}
+.stat.s-score .stat-val{color:var(--a4);}
+
+/* GAME CARD */
+.game-card{background:var(--surf);border:1px solid var(--border);border-radius:24px;padding:28px;width:100%;position:relative;overflow:hidden;margin-bottom:18px;}
+.game-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--a1),var(--a2),var(--a3));}
+
+/* CLOSENESS BAR */
+.close-wrap{margin-bottom:22px;}
+.close-label{display:flex;justify-content:space-between;margin-bottom:8px;}
+.close-label span{font-family:var(--mono);font-size:11px;letter-spacing:1px;color:var(--muted);}
+.close-bar-bg{height:6px;background:var(--surf2);border-radius:100px;overflow:hidden;border:1px solid var(--border);}
+.close-bar-fill{height:100%;border-radius:100px;width:0%;transition:width .6s cubic-bezier(.4,0,.2,1),background .4s;background:var(--muted);}
+
+/* INPUT ROW */
+.input-row{display:flex;gap:10px;margin-bottom:18px;}
+.guess-input{
+  flex:1;background:var(--surf2);border:1px solid var(--border2);border-radius:14px;
+  color:var(--text);font-family:var(--font);font-size:24px;font-weight:800;
+  padding:14px 18px;outline:none;text-align:center;letter-spacing:-1px;
+  transition:border-color .2s,box-shadow .2s;-moz-appearance:textfield;
+}
+.guess-input::-webkit-outer-spin-button,.guess-input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.guess-input:focus{border-color:var(--a1);box-shadow:0 0 0 3px rgba(192,132,252,.15);}
+.guess-input.shake{animation:shake .4s ease;}
+.guess-input.correct-glow{border-color:var(--a4);box-shadow:0 0 24px rgba(52,211,153,.3);}
+
+.check-btn{
+  background:linear-gradient(135deg,var(--a1),var(--a2));color:var(--bg);
+  border:none;border-radius:14px;padding:14px 22px;font-family:var(--font);
+  font-weight:800;font-size:15px;cursor:pointer;white-space:nowrap;
+  transition:opacity .2s,transform .15s;
+}
+.check-btn:hover{opacity:.88;}
+.check-btn:active{transform:scale(.97);}
+.check-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+
+/* HINT */
+.hint-box{
+  min-height:60px;display:flex;align-items:center;justify-content:center;
+  border-radius:14px;background:var(--surf2);border:1px solid var(--border);
+  font-size:18px;font-weight:700;letter-spacing:-.5px;
+  transition:all .35s ease;
+  gap:10px;
+}
+.hint-box.hint-high{border-color:var(--a3);color:var(--a3);background:rgba(251,113,133,.07);animation:hintSlide .35s ease both;}
+.hint-box.hint-low{border-color:var(--a2);color:var(--a2);background:rgba(56,189,248,.07);animation:hintSlide .35s ease both;}
+.hint-box.hint-close{border-color:var(--a5);color:var(--a5);background:rgba(251,191,36,.07);animation:hintSlide .35s ease both;}
+.hint-box.hint-win{border-color:var(--a4);color:var(--a4);background:rgba(52,211,153,.07);animation:hintSlide .35s ease both;}
+.hint-box.hint-lose{border-color:var(--a3);color:var(--a3);background:rgba(251,113,133,.07);}
+@keyframes hintSlide{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);}}
+
+/* HISTORY */
+.history-wrap{margin-top:18px;}
+.history-title{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;}
+.history-list{display:flex;flex-wrap:wrap;gap:6px;}
+.h-chip{
+  font-family:var(--mono);font-size:12px;font-weight:500;
+  padding:4px 12px;border-radius:100px;border:1px solid;
+  animation:chipPop .25s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes chipPop{from{opacity:0;transform:scale(.7);}to{opacity:1;transform:scale(1);}}
+.h-chip.high{color:var(--a3);border-color:rgba(251,113,133,.35);background:rgba(251,113,133,.08);}
+.h-chip.low{color:var(--a2);border-color:rgba(56,189,248,.35);background:rgba(56,189,248,.08);}
+.h-chip.close{color:var(--a5);border-color:rgba(251,191,36,.35);background:rgba(251,191,36,.08);}
+
+/* BOTTOM BTNS */
+.bottom-btns{display:flex;gap:10px;width:100%;}
+.icon-btn{
+  flex:1;font-family:var(--font);font-weight:700;font-size:14px;
+  background:var(--surf);border:1px solid var(--border);color:var(--muted);
+  border-radius:14px;padding:13px;cursor:pointer;transition:all .2s;
+}
+.icon-btn:hover{background:var(--surf2);color:var(--text);border-color:var(--border2);}
+
+/* WIN/LOSE OVERLAY */
+.overlay{
+  position:fixed;inset:0;background:rgba(7,7,15,.88);
+  display:flex;align-items:center;justify-content:center;
+  z-index:200;backdrop-filter:blur(8px);animation:fadeIn .3s ease;
+}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.modal{
+  background:var(--surf);border:1px solid var(--border2);border-radius:28px;
+  padding:44px 36px;text-align:center;max-width:340px;width:92%;
+  position:relative;overflow:hidden;animation:popIn .5s cubic-bezier(.22,1,.36,1);
+}
+@keyframes popIn{from{transform:scale(.75) translateY(30px);opacity:0;}to{transform:scale(1);opacity:1;}}
+.modal::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.modal.win::before{background:linear-gradient(90deg,var(--a4),var(--a2),var(--a1));}
+.modal.lose::before{background:linear-gradient(90deg,var(--a3),var(--a1));}
+.modal-icon{font-size:64px;margin-bottom:14px;}
+.modal-title{font-size:34px;font-weight:800;letter-spacing:-1.5px;margin-bottom:6px;}
+.modal.win .modal-title{background:linear-gradient(135deg,var(--a4),var(--a2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.modal.lose .modal-title{background:linear-gradient(135deg,var(--a3),var(--a1));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.modal-sub{font-family:var(--mono);font-size:13px;color:var(--muted);margin-bottom:24px;}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:28px;}
+.modal-stat{background:var(--surf2);border-radius:14px;padding:14px 10px;}
+.modal-stat-l{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;}
+.modal-stat-v{font-size:24px;font-weight:800;letter-spacing:-1px;color:var(--a5);}
+.modal-play{
+  width:100%;font-family:var(--font);font-weight:800;font-size:16px;
+  background:linear-gradient(135deg,var(--a1),var(--a3));color:var(--bg);
+  border:none;border-radius:14px;padding:15px;cursor:pointer;
+  transition:opacity .2s,transform .15s;margin-bottom:10px;
+}
+.modal-play:hover{opacity:.88;}
+.modal-play:active{transform:scale(.97);}
+.modal-setup{
+  width:100%;font-family:var(--font);font-weight:700;font-size:14px;
+  background:transparent;color:var(--muted);border:1px solid var(--border);
+  border-radius:14px;padding:12px;cursor:pointer;transition:all .2s;
+}
+.modal-setup:hover{color:var(--text);border-color:var(--border2);}
+
+/* CONFETTI */
+.confetti-piece{position:fixed;pointer-events:none;z-index:300;animation:cfall linear forwards;}
+@keyframes cfall{0%{transform:translateY(-20px) rotate(0deg);opacity:1;}100%{transform:translateY(100vh) rotate(720deg);opacity:0;}}
+</style>
+</head>
+<body>
+<div class="blob b1"></div>
+<div class="blob b2"></div>
+<div class="blob b3"></div>
+
+<div class="wrap">
+
+  <!-- SETUP SCREEN -->
+  <div class="screen active" id="screen-setup">
+    <div class="logo-tag">✦ mind game</div>
+    <div class="big-title">
+      <span class="fill">GUESS</span><br>
+      <span class="outline">IT</span>
+    </div>
+    <div class="sub">// set your range. test your brain.</div>
+
+    <div class="setup-card">
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Min number</label>
+          <input type="number" id="inp-min" value="1" min="-9999" max="9999" placeholder="1"/>
+        </div>
+        <div class="field">
+          <label class="field-label">Max number</label>
+          <input type="number" id="inp-max" value="100" min="-9999" max="9999" placeholder="100"/>
+        </div>
+      </div>
+      <div class="max-row">
+        <label class="field-label">Max attempts</label>
+        <input type="number" id="inp-att" value="10" min="1" max="50" placeholder="10"/>
+      </div>
+      <div class="range-preview" id="range-preview">
+        Guess a number between <b>1</b> and <b>100</b> — you have <b>10</b> tries
+      </div>
+      <button class="start-btn" onclick="startGame()"><span>⚡ Start Game</span></button>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div class="screen" id="screen-game">
+    <div class="game-header">
+      <div class="game-tag">// guessing between</div>
+      <div class="range-badge" id="range-badge">1 — 100</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat s-att">
+        <div class="stat-lbl">Attempts</div>
+        <div class="stat-val"><span id="att-cur">0</span>/<span id="att-max">10</span></div>
+      </div>
+      <div class="stat s-best">
+        <div class="stat-lbl">Best</div>
+        <div class="stat-val" id="best-val">—</div>
+      </div>
+      <div class="stat s-score">
+        <div class="stat-lbl">Score</div>
+        <div class="stat-val" id="score-val">—</div>
+      </div>
+    </div>
+
+    <div class="game-card">
+      <div class="close-wrap">
+        <div class="close-label">
+          <span>🧊 cold</span>
+          <span id="close-pct">—</span>
+          <span>🔥 hot</span>
+        </div>
+        <div class="close-bar-bg"><div class="close-bar-fill" id="close-bar"></div></div>
+      </div>
+
+      <div class="input-row">
+        <input type="number" class="guess-input" id="guess-inp" placeholder="?" autocomplete="off"/>
+        <button class="check-btn" id="check-btn" onclick="checkGuess()">Check</button>
+      </div>
+
+      <div class="hint-box" id="hint-box">Type a number and hit Check ✦</div>
+
+      <div class="history-wrap" id="history-wrap" style="display:none;">
+        <div class="history-title">// guess history</div>
+        <div class="history-list" id="history-list"></div>
+      </div>
+    </div>
+
+    <div class="bottom-btns">
+      <button class="icon-btn" onclick="restartSame()">⟳ Restart</button>
+      <button class="icon-btn" onclick="goSetup()">⚙ Change Range</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let secret, minN, maxN, maxAtt, attempts, gameOver, guessHistory, bestScore;
+bestScore = parseInt(localStorage.getItem('guess_best')) || null;
+
+// Live preview
+['inp-min','inp-max','inp-att'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updatePreview);
+});
+function updatePreview(){
+  const mn = parseInt(document.getElementById('inp-min').value)||1;
+  const mx = parseInt(document.getElementById('inp-max').value)||100;
+  const at = parseInt(document.getElementById('inp-att').value)||10;
+  document.getElementById('range-preview').innerHTML =
+    `Guess a number between <b>${mn}</b> and <b>${mx}</b> — you have <b>${at}</b> tries`;
+}
+
+// Enter key
+document.getElementById('guess-inp').addEventListener('keydown', e => {
+  if(e.key==='Enter') checkGuess();
+});
+
+function startGame(){
+  const mn = parseInt(document.getElementById('inp-min').value);
+  const mx = parseInt(document.getElementById('inp-max').value);
+  const at = parseInt(document.getElementById('inp-att').value);
+
+  // Validate setup
+  let ok = true;
+  if(isNaN(mn)){errinput('inp-min');ok=false;}
+  if(isNaN(mx)||mx<=mn){errinput('inp-max');ok=false;}
+  if(isNaN(at)||at<1){errinput('inp-att');ok=false;}
+  if(!ok) return;
+
+  minN=mn; maxN=mx; maxAtt=at;
+  secret = Math.floor(Math.random()*(maxN-minN+1))+minN;
+  attempts=0; gameOver=false; guessHistory=[];
+
+  document.getElementById('range-badge').textContent = `${minN} — ${maxN}`;
+  document.getElementById('att-cur').textContent='0';
+  document.getElementById('att-max').textContent=maxAtt;
+  document.getElementById('score-val').textContent='—';
+  document.getElementById('best-val').textContent = bestScore!==null ? bestScore : '—';
+  document.getElementById('hint-box').className='hint-box';
+  document.getElementById('hint-box').textContent='Type a number and hit Check ✦';
+  document.getElementById('guess-inp').value='';
+  document.getElementById('guess-inp').className='guess-input';
+  document.getElementById('close-bar').style.width='0%';
+  document.getElementById('close-bar').style.background='var(--muted)';
+  document.getElementById('close-pct').textContent='—';
+  document.getElementById('history-list').innerHTML='';
+  document.getElementById('history-wrap').style.display='none';
+  document.getElementById('check-btn').disabled=false;
+
+  showScreen('game');
+}
+
+function checkGuess(){
+  if(gameOver) return;
+  const inp = document.getElementById('guess-inp');
+  const raw = inp.value.trim();
+  const guess = parseInt(raw);
+
+  if(raw===''||isNaN(guess)){return shakeInput();}
+  if(guess<minN||guess>maxN){
+    setHint(`⚠️ Out of range! Pick between ${minN}–${maxN}`,null);
+    return shakeInput();
+  }
+  if(guessHistory.some(h=>h.val===guess)){
+    setHint(`Already tried ${guess}! Guess something new.`,null);
+    return shakeInput();
+  }
+
+  attempts++;
+  document.getElementById('att-cur').textContent=attempts;
+  inp.value='';
+
+  const diff = Math.abs(guess - secret);
+  const range = maxN - minN;
+  const closePct = Math.max(0, Math.round((1 - diff/range)*100));
+
+  // Update closeness bar
+  const bar = document.getElementById('close-bar');
+  bar.style.width = closePct+'%';
+  if(closePct>=80) bar.style.background='var(--a4)';
+  else if(closePct>=50) bar.style.background='var(--a5)';
+  else if(closePct>=25) bar.style.background='var(--a1)';
+  else bar.style.background='var(--a3)';
+  document.getElementById('close-pct').textContent = closePct+'% warm';
+
+  if(guess===secret){
+    // WIN
+    inp.className='guess-input correct-glow';
+    gameOver=true;
+    document.getElementById('check-btn').disabled=true;
+    const score = Math.max(10, Math.round(1000 - (attempts-1)*80));
+    document.getElementById('score-val').textContent=score;
+    if(bestScore===null||score>bestScore){
+      bestScore=score;
+      localStorage.setItem('guess_best',bestScore);
+      document.getElementById('best-val').textContent=bestScore;
+    }
+    setHint('🎉 Correct! You nailed it!','hint-win');
+    addChip(guess,'close');
+    setTimeout(()=>{showWinModal(attempts, score);launchConfetti();},500);
+    return;
+  }
+
+  const dir = guess>secret ? 'high' : 'low';
+  let hintText, chipClass='';
+
+  if(diff<=Math.ceil(range*0.04)){hintText=`🔥 Soooo close! ${guess>secret?'↓':'↑'}`;chipClass='close';}
+  else if(diff<=Math.ceil(range*0.10)){hintText=`🌡️ Very warm! ${guess>secret?'Go lower ↓':'Go higher ↑'}`;chipClass='close';}
+  else if(diff<=Math.ceil(range*0.25)){hintText=guess>secret?`📈 A bit high — come down`:`📉 A bit low — go up`;chipClass=dir;}
+  else{hintText=guess>secret?`📈 Too high! Way off.`:`📉 Too low! Way off.`;chipClass=dir;}
+
+  const hintClass = chipClass==='close'?'hint-close':`hint-${dir}`;
+  setHint(hintText, hintClass);
+  addChip(guess, chipClass);
+
+  guessHistory.push({val:guess,dir:chipClass});
+
+  if(attempts>=maxAtt){
+    gameOver=true;
+    document.getElementById('check-btn').disabled=true;
+    setHint(`💀 Game Over! The number was ${secret}`,'hint-lose');
+    setTimeout(()=>showLoseModal(),500);
+  }
+}
+
+function setHint(text, cls){
+  const h=document.getElementById('hint-box');
+  h.className='hint-box'+(cls?' '+cls:'');
+  h.textContent=text;
+}
+
+function addChip(val, type){
+  document.getElementById('history-wrap').style.display='block';
+  const chip=document.createElement('div');
+  chip.className=`h-chip ${type}`;
+  chip.textContent=val;
+  document.getElementById('history-list').appendChild(chip);
+}
+
+function shakeInput(){
+  const inp=document.getElementById('guess-inp');
+  inp.classList.remove('shake');
+  void inp.offsetWidth;
+  inp.classList.add('shake');
+}
+
+function errinput(id){
+  const el=document.getElementById(id);
+  el.classList.remove('err');
+  void el.offsetWidth;
+  el.classList.add('err');
+  setTimeout(()=>el.classList.remove('err'),1000);
+}
+
+function restartSame(){
+  secret=Math.floor(Math.random()*(maxN-minN+1))+minN;
+  attempts=0; gameOver=false; guessHistory=[];
+  document.getElementById('att-cur').textContent='0';
+  document.getElementById('score-val').textContent='—';
+  document.getElementById('best-val').textContent=bestScore!==null?bestScore:'—';
+  document.getElementById('hint-box').className='hint-box';
+  document.getElementById('hint-box').textContent='Type a number and hit Check ✦';
+  document.getElementById('guess-inp').value='';
+  document.getElementById('guess-inp').className='guess-input';
+  document.getElementById('close-bar').style.width='0%';
+  document.getElementById('close-pct').textContent='—';
+  document.getElementById('history-list').innerHTML='';
+  document.getElementById('history-wrap').style.display='none';
+  document.getElementById('check-btn').disabled=false;
+  removeOverlay();
+}
+
+function goSetup(){showScreen('setup');removeOverlay();}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>{s.classList.remove('active');});
+  const sc=document.getElementById('screen-'+id);
+  sc.classList.add('active');
+  sc.style.animation='none';
+  void sc.offsetWidth;
+  sc.style.animation='';
+}
+
+function removeOverlay(){
+  const ov=document.querySelector('.overlay');
+  if(ov) ov.remove();
+}
+
+function showWinModal(att, score){
+  removeOverlay();
+  const o=document.createElement('div');
+  o.className='overlay';
+  o.innerHTML=`<div class="modal win">
+    <div class="modal-icon">🏆</div>
+    <div class="modal-title">You Got It!</div>
+    <div class="modal-sub">The number was <b style="color:var(--a4)">${secret}</b></div>
+    <div class="modal-grid">
+      <div class="modal-stat"><div class="modal-stat-l">Attempts</div><div class="modal-stat-v">${att}/${maxAtt}</div></div>
+      <div class="modal-stat"><div class="modal-stat-l">Score</div><div class="modal-stat-v">${score}</div></div>
+      <div class="modal-stat"><div class="modal-stat-l">Best Score</div><div class="modal-stat-v">${bestScore}</div></div>
+      <div class="modal-stat"><div class="modal-stat-l">Range</div><div class="modal-stat-v" style="font-size:16px">${minN}–${maxN}</div></div>
+    </div>
+    <button class="modal-play" onclick="restartSame()">⟳ Play Again</button>
+    <button class="modal-setup" onclick="goSetup()">⚙ Change Range</button>
+  </div>`;
+  document.body.appendChild(o);
+}
+
+function showLoseModal(){
+  removeOverlay();
+  const o=document.createElement('div');
+  o.className='overlay';
+  o.innerHTML=`<div class="modal lose">
+    <div class="modal-icon">💀</div>
+    <div class="modal-title">Game Over</div>
+    <div class="modal-sub">The number was <b style="color:var(--a3)">${secret}</b></div>
+    <div class="modal-grid">
+      <div class="modal-stat"><div class="modal-stat-l">Attempts</div><div class="modal-stat-v">${maxAtt}/${maxAtt}</div></div>
+      <div class="modal-stat"><div class="modal-stat-l">Range</div><div class="modal-stat-v" style="font-size:16px">${minN}–${maxN}</div></div>
+    </div>
+    <button class="modal-play" onclick="restartSame()">⟳ Try Again</button>
+    <button class="modal-setup" onclick="goSetup()">⚙ Change Range</button>
+  </div>`;
+  document.body.appendChild(o);
+}
+
+function launchConfetti(){
+  const colors=['#c084fc','#38bdf8','#fb7185','#34d399','#fbbf24','#ffffff'];
+  for(let i=0;i<70;i++){
+    const el=document.createElement('div');
+    el.className='confetti-piece';
+    el.style.cssText=`left:${Math.random()*100}vw;top:-10px;background:${colors[Math.floor(Math.random()*colors.length)]};animation-duration:${1.6+Math.random()*2.2}s;animation-delay:${Math.random()*.8}s;width:${6+Math.random()*7}px;height:${6+Math.random()*7}px;border-radius:${Math.random()>.5?'50%':'3px'};`;
+    document.body.appendChild(el);
+    el.addEventListener('animationend',()=>el.remove());
+  }
+}
+</script>
+</body>
+</html>
