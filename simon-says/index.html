@@ -128,24 +128,15 @@
     margin-bottom: 14px;
   }
   .heart {
-    width: 22px;
-    height: 20px;
-    position: relative;
+    font-size: 22px;
+    line-height: 1;
     transition: opacity 0.3s, transform 0.3s;
+    user-select: none;
   }
-  .heart::before, .heart::after {
-    content: '';
-    position: absolute;
-    width: 11px;
-    height: 16px;
-    background: #e05454;
-    border-radius: 11px 11px 0 0;
-    box-shadow: 0 0 8px rgba(224,84,84,0.6);
+  .heart.lost {
+    opacity: 0.2;
+    filter: grayscale(1);
   }
-  .heart::before { left: 0; transform: rotate(-45deg); transform-origin: bottom right; }
-  .heart::after  { right: 0; transform: rotate(45deg);  transform-origin: bottom left; }
-  .heart.lost { opacity: 0.15; }
-  .heart.lost::before, .heart.lost::after { background: var(--muted); box-shadow: none; }
 
   /* MODE TABS */
   .mode-tabs {
@@ -202,25 +193,8 @@
   .status-bar.wrong   { color: #ff8080; }
   .status-bar.win     { color: #ffd060; }
 
-  /* SEQUENCE DOTS */
-  .seq-track {
-    display: flex;
-    gap: 5px;
-    justify-content: center;
-    flex-wrap: wrap;
-    min-height: 14px;
-    margin-bottom: 14px;
-  }
-  .seq-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--muted);
-    opacity: 0.2;
-    transition: opacity 0.2s, transform 0.2s;
-  }
-  .seq-dot.done  { opacity: 1; transform: scale(1.2); }
-  .seq-dot.next  { opacity: 0.5; }
+  /* SEQUENCE DOTS — hidden */
+  .seq-track { display: none; }
 
   /* BOARD */
   .board-container {
@@ -495,6 +469,7 @@ function buildLives(){
   for(let i=0;i<3;i++){
     const h=document.createElement('div');
     h.className='heart'+(i>=lives?' lost':'');
+    h.textContent='❤️';
     l.appendChild(h);
   }
 }
