@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIR HOCKEY</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ice: #d4f1ff;
+    --ice2: #a8e4f8;
+    --neon: #00f0ff;
+    --neon2: #ff2d78;
+    --dark: #04080f;
+    --panel: #0b1622;
+    --border: #1a3a5c;
+    --p1: #00f0ff;
+    --p2: #ff2d78;
+    --puck: #f8f8ff;
+    --glow: 0 0 20px var(--neon);
+  }
+
+  body {
+    background: var(--dark);
+    color: white;
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,240,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,240,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridScroll 20s linear infinite;
+    pointer-events: none;
+  }
+
+  @keyframes gridScroll {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(40px); }
+  }
+
+  /* Scanlines */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3rem, 8vw, 6rem);
+    letter-spacing: 0.15em;
+    text-align: center;
+    background: linear-gradient(135deg, var(--neon) 0%, #fff 50%, var(--neon2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 20px rgba(0,240,255,0.5));
+    margin-bottom: 8px;
+    line-height: 1;
+  }
+
+  .subtitle {
+    font-size: 0.7rem;
+    letter-spacing: 0.4em;
+    color: rgba(0,240,255,0.5);
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  /* ===== LOBBY ===== */
+  #lobby {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    max-width: 440px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 28px 32px;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--neon), transparent);
+    opacity: 0.6;
+  }
+
+  .card-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 0.2em;
+    color: var(--neon);
+    margin-bottom: 16px;
+    text-shadow: 0 0 10px rgba(0,240,255,0.4);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 28px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.2em;
+    border: none;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+    text-transform: uppercase;
+    width: 100%;
+  }
+
+  .btn-primary {
+    background: var(--neon);
+    color: var(--dark);
+    box-shadow: 0 0 20px rgba(0,240,255,0.4);
+  }
+  .btn-primary:hover { box-shadow: 0 0 35px rgba(0,240,255,0.7); transform: translateY(-1px); }
+
+  .btn-secondary {
+    background: var(--neon2);
+    color: white;
+    box-shadow: 0 0 20px rgba(255,45,120,0.4);
+  }
+  .btn-secondary:hover { box-shadow: 0 0 35px rgba(255,45,120,0.7); transform: translateY(-1px); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--neon);
+    border: 1px solid var(--neon);
+  }
+  .btn-outline:hover { background: rgba(0,240,255,0.08); }
+
+  .input-group { display: flex; flex-direction: column; gap: 6px; }
+
+  label {
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+  }
+
+  input {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: white;
+    padding: 10px 14px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.1rem;
+    letter-spacing: 0.2em;
+    border-radius: 2px;
+    outline: none;
+    text-transform: uppercase;
+    transition: border-color 0.2s;
+  }
+  input:focus { border-color: var(--neon); box-shadow: 0 0 0 2px rgba(0,240,255,0.1); }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: rgba(255,255,255,0.2);
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    width: 100%;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .room-code {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.5rem;
+    letter-spacing: 0.4em;
+    color: var(--neon);
+    text-shadow: 0 0 20px rgba(0,240,255,0.6);
+    text-align: center;
+    padding: 12px 0;
+    border: 1px dashed rgba(0,240,255,0.3);
+    border-radius: 2px;
+    background: rgba(0,240,255,0.03);
+    margin: 8px 0;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .room-code:hover { background: rgba(0,240,255,0.07); }
+
+  .status-msg {
+    text-align: center;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    padding: 8px 12px;
+    border-radius: 2px;
+  }
+  .status-wait { color: rgba(255,200,0,0.8); background: rgba(255,200,0,0.06); border: 1px solid rgba(255,200,0,0.2); }
+  .status-ok   { color: rgba(0,240,100,0.9); background: rgba(0,240,100,0.06); border: 1px solid rgba(0,240,100,0.2); }
+  .status-err  { color: rgba(255,80,80,0.9); background: rgba(255,80,80,0.06); border: 1px solid rgba(255,80,80,0.2); }
+
+  .controls-hint {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .ctrl-box {
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 10px 12px;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    line-height: 1.8;
+  }
+  .ctrl-box span { display: block; margin-bottom: 4px; letter-spacing: 0.25em; }
+  .ctrl-p1 span { color: var(--p1); }
+  .ctrl-p2 span { color: var(--p2); }
+  .key {
+    display: inline-block;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 2px;
+    padding: 1px 5px;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.7);
+  }
+
+  /* ===== GAME AREA ===== */
+  #game-area {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .scoreboard {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 0 10px;
+    max-width: 600px;
+  }
+
+  .player-score {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 120px;
+  }
+
+  .player-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+  }
+  .p1-label { color: var(--p1); }
+  .p2-label { color: var(--p2); }
+
+  .score-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3.5rem;
+    line-height: 1;
+    filter: drop-shadow(0 0 12px currentColor);
+  }
+  .p1-score { color: var(--p1); }
+  .p2-score { color: var(--p2); }
+
+  .score-sep {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: rgba(255,255,255,0.2);
+    letter-spacing: 0.1em;
+  }
+
+  #game-canvas {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    display: block;
+    box-shadow:
+      0 0 40px rgba(0,240,255,0.08),
+      inset 0 0 60px rgba(0,240,255,0.03);
+    max-width: 100vw;
+    max-height: 70vh;
+  }
+
+  .game-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 600px;
+    padding: 8px 0;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: rgba(255,255,255,0.25);
+  }
+
+  .goal-flash {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+  .goal-flash.p1 { background: radial-gradient(ellipse at center, rgba(0,240,255,0.25) 0%, transparent 70%); }
+  .goal-flash.p2 { background: radial-gradient(ellipse at center, rgba(255,45,120,0.25) 0%, transparent 70%); }
+  .goal-flash.show { opacity: 1; }
+
+  .win-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(4,8,15,0.92);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 60;
+    gap: 20px;
+  }
+  .win-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3rem,10vw,7rem);
+    letter-spacing: 0.2em;
+    animation: pulseWin 1s ease-in-out infinite alternate;
+  }
+  .win-sub { font-size: 0.8rem; letter-spacing: 0.3em; color: rgba(255,255,255,0.5); }
+  @keyframes pulseWin {
+    from { filter: drop-shadow(0 0 20px currentColor); }
+    to   { filter: drop-shadow(0 0 60px currentColor) brightness(1.3); }
+  }
+
+  #toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 10px 24px;
+    border-radius: 2px;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--neon);
+    transition: transform 0.3s ease;
+    z-index: 200;
+    white-space: nowrap;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+<div class="goal-flash" id="goal-flash"></div>
+<div class="win-overlay" id="win-overlay">
+  <div class="win-title" id="win-title">PLAYER 1 WINS!</div>
+  <div class="win-sub">FIRST TO 7 GOALS</div>
+  <button class="btn btn-primary" style="width:220px;margin-top:8px" onclick="resetGame()">PLAY AGAIN</button>
+  <button class="btn btn-outline" style="width:220px" onclick="backToLobby()">BACK TO LOBBY</button>
+</div>
+
+<!-- LOBBY -->
+<div id="lobby">
+  <h1>AIR HOCKEY</h1>
+  <p class="subtitle">2-Player · Browser · No Install</p>
+
+  <div class="card" id="main-menu">
+    <div class="card-title">Choose Mode</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button class="btn btn-primary" onclick="showCreate()">⬡ CREATE ROOM</button>
+      <button class="btn btn-secondary" onclick="showJoin()">◎ JOIN ROOM</button>
+      <div class="divider">OR</div>
+      <button class="btn btn-outline" onclick="startLocal()">⌨ LOCAL 2-PLAYER (SAME KEYBOARD)</button>
+    </div>
+  </div>
+
+  <!-- CREATE -->
+  <div class="card hidden" id="create-card">
+    <div class="card-title">Create Room</div>
+    <p style="font-size:0.65rem;color:rgba(255,255,255,0.4);letter-spacing:0.15em;margin-bottom:12px;">Share this code with your opponent</p>
+    <div class="room-code" id="create-code" title="Click to copy" onclick="copyCode()">——</div>
+    <div class="status-msg status-wait" id="create-status">GENERATING ROOM...</div>
+    <div style="margin-top:16px;display:flex;gap:8px;">
+      <button class="btn btn-outline" style="flex:1" onclick="backMenu()">← BACK</button>
+    </div>
+  </div>
+
+  <!-- JOIN -->
+  <div class="card hidden" id="join-card">
+    <div class="card-title">Join Room</div>
+    <div class="input-group">
+      <label>Room Code</label>
+      <input type="text" id="join-input" maxlength="6" placeholder="XXXXXX" autocomplete="off"
+        oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')joinRoom()">
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;">
+      <button class="btn btn-outline" style="flex:1" onclick="backMenu()">← BACK</button>
+      <button class="btn btn-secondary" style="flex:2" onclick="joinRoom()">JOIN →</button>
+    </div>
+    <div class="status-msg status-err hidden" id="join-error">ROOM NOT FOUND</div>
+  </div>
+
+  <!-- Controls hint -->
+  <div class="card" style="padding:18px 24px;">
+    <div class="card-title" style="font-size:1rem;margin-bottom:10px;">Controls</div>
+    <div class="controls-hint">
+      <div class="ctrl-box ctrl-p1">
+        <span>PLAYER 1</span>
+        <span class="key">W</span> / <span class="key">S</span> — Up/Down<br>
+        <span class="key">A</span> / <span class="key">D</span> — Left/Right
+      </div>
+      <div class="ctrl-box ctrl-p2">
+        <span>PLAYER 2</span>
+        <span class="key">↑</span> / <span class="key">↓</span> — Up/Down<br>
+        <span class="key">←</span> / <span class="key">→</span> — Left/Right
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="game-area">
+  <div class="scoreboard">
+    <div class="player-score">
+      <div class="player-label p1-label" id="p1-label">PLAYER 1</div>
+      <div class="score-num p1-score" id="score-p1">0</div>
+    </div>
+    <div class="score-sep">vs</div>
+    <div class="player-score">
+      <div class="score-num p2-score" id="score-p2">0</div>
+      <div class="player-label p2-label" id="p2-label">PLAYER 2</div>
+    </div>
+  </div>
+  <canvas id="game-canvas"></canvas>
+  <div class="game-footer">
+    <span id="room-info">LOCAL MATCH</span>
+    <span id="game-tip">FIRST TO 7 WINS</span>
+  </div>
+</div>
+
+<script>
+// =====================================================
+// CONSTANTS & STATE
+// =====================================================
+const WINNING_SCORE = 7;
+const PUCK_SPEED_INIT = 5;
+const PUCK_MAX_SPEED = 14;
+const PADDLE_SPEED = 6;
+const PADDLE_R = 28;
+const PUCK_R = 14;
+
+let canvas, ctx;
+let W, H;
+let gameState = null; // 'local' | 'host' | 'guest'
+let animId = null;
+let roomId = null;
+let channel = null; // BroadcastChannel
+let isHost = false;
+
+// Physics objects
+let puck = {}, p1 = {}, p2 = {};
+let score = { p1: 0, p2: 0 };
+let keys = {};
+let goalCooldown = 0;
+let countdownTimer = 0;
+let countdownVal = 0;
+let gameRunning = false;
+
+// =====================================================
+// ROOM SYSTEM (BroadcastChannel - same browser tabs)
+// =====================================================
+function genRoomId() {
+  return Math.random().toString(36).substring(2,8).toUpperCase();
+}
+
+function showCreate() {
+  document.getElementById('main-menu').classList.add('hidden');
+  document.getElementById('create-card').classList.remove('hidden');
+  document.getElementById('join-card').classList.add('hidden');
+
+  roomId = genRoomId();
+  document.getElementById('create-code').textContent = roomId;
+
+  // Open channel and wait for player 2
+  channel = new BroadcastChannel('airhockey_' + roomId);
+  isHost = true;
+
+  // Store room in localStorage so same-browser guest can find it
+  localStorage.setItem('airhockey_room_' + roomId, JSON.stringify({ created: Date.now() }));
+
+  document.getElementById('create-status').textContent = 'WAITING FOR OPPONENT...';
+  document.getElementById('create-status').className = 'status-msg status-wait';
+
+  channel.onmessage = (e) => {
+    const msg = e.data;
+    if (msg.type === 'join') {
+      // Guest joined!
+      document.getElementById('create-status').textContent = 'OPPONENT CONNECTED! STARTING...';
+      document.getElementById('create-status').className = 'status-msg status-ok';
+      channel.postMessage({ type: 'start', roomId });
+      setTimeout(() => startGame('host'), 600);
+    }
+    if (msg.type === 'input' && !isHost) {
+      // guest input (when host receives guest paddle moves)
+      applyGuestInput(msg);
+    }
+    if (msg.type === 'state' && !isHost) {
+      applyHostState(msg);
+    }
+  };
+}
+
+function showJoin() {
+  document.getElementById('main-menu').classList.add('hidden');
+  document.getElementById('join-card').classList.remove('hidden');
+  document.getElementById('create-card').classList.add('hidden');
+  document.getElementById('join-error').classList.add('hidden');
+  document.getElementById('join-input').value = '';
+  document.getElementById('join-input').focus();
+}
+
+function joinRoom() {
+  const code = document.getElementById('join-input').value.trim().toUpperCase();
+  if (code.length < 4) { showJoinError('ENTER A VALID CODE'); return; }
+
+  // Check localStorage for room
+  const roomData = localStorage.getItem('airhockey_room_' + code);
+  if (!roomData) { showJoinError('ROOM NOT FOUND — MAKE SURE HOST IS READY'); return; }
+
+  // Check room not too old (>10min)
+  const { created } = JSON.parse(roomData);
+  if (Date.now() - created > 600000) { showJoinError('ROOM EXPIRED'); return; }
+
+  roomId = code;
+  isHost = false;
+  channel = new BroadcastChannel('airhockey_' + roomId);
+
+  channel.onmessage = (e) => {
+    const msg = e.data;
+    if (msg.type === 'start') {
+      startGame('guest');
+    }
+    if (msg.type === 'state') {
+      applyHostState(msg);
+    }
+    if (msg.type === 'reset') {
+      resetAfterGoal(msg.scorer);
+    }
+    if (msg.type === 'gameover') {
+      showWin(msg.winner);
+    }
+  };
+
+  // Signal host we joined
+  channel.postMessage({ type: 'join', roomId });
+  document.getElementById('join-error').textContent = 'CONNECTING...';
+  document.getElementById('join-error').className = 'status-msg status-wait';
+  document.getElementById('join-error').classList.remove('hidden');
+}
+
+function showJoinError(msg) {
+  const el = document.getElementById('join-error');
+  el.textContent = msg;
+  el.className = 'status-msg status-err';
+  el.classList.remove('hidden');
+}
+
+function backMenu() {
+  if (channel) { channel.close(); channel = null; }
+  document.getElementById('main-menu').classList.remove('hidden');
+  document.getElementById('create-card').classList.add('hidden');
+  document.getElementById('join-card').classList.add('hidden');
+}
+
+function copyCode() {
+  navigator.clipboard?.writeText(roomId).then(() => showToast('ROOM CODE COPIED!'));
+}
+
+// =====================================================
+// GAME INIT
+// =====================================================
+function startLocal() {
+  gameState = 'local';
+  roomId = null;
+  document.getElementById('room-info').textContent = 'LOCAL MATCH';
+  document.getElementById('p1-label').textContent = 'PLAYER 1';
+  document.getElementById('p2-label').textContent = 'PLAYER 2';
+  launchGame();
+}
+
+function startGame(role) {
+  gameState = role; // 'host' or 'guest'
+  document.getElementById('p1-label').textContent = role === 'host' ? 'YOU' : 'OPPONENT';
+  document.getElementById('p2-label').textContent = role === 'guest' ? 'YOU' : 'OPPONENT';
+  document.getElementById('room-info').textContent = 'ROOM: ' + roomId;
+  launchGame();
+}
+
+function launchGame() {
+  document.getElementById('lobby').style.display = 'none';
+  const ga = document.getElementById('game-area');
+  ga.style.display = 'flex';
+
+  canvas = document.getElementById('game-canvas');
+  ctx = canvas.getContext('2d');
+
+  // Responsive sizing
+  const maxW = Math.min(window.innerWidth - 32, 600);
+  const maxH = Math.min(window.innerHeight * 0.65, 420);
+  W = maxW;
+  H = maxH;
+  canvas.width = W;
+  canvas.height = H;
+
+  score = { p1: 0, p2: 0 };
+  updateScoreDisplay();
+  initObjects();
+  startCountdown(3);
+}
+
+function initObjects() {
+  p1 = { x: PADDLE_R + 10, y: H/2, r: PADDLE_R };
+  p2 = { x: W - PADDLE_R - 10, y: H/2, r: PADDLE_R };
+  puck = {
+    x: W/2, y: H/2,
+    vx: (Math.random() > 0.5 ? 1 : -1) * PUCK_SPEED_INIT,
+    vy: (Math.random() - 0.5) * PUCK_SPEED_INIT * 0.8,
+    r: PUCK_R
+  };
+  gameRunning = false;
+}
+
+function startCountdown(from) {
+  countdownVal = from;
+  countdownTimer = from * 60; // frames
+  gameRunning = false;
+  if (animId) cancelAnimationFrame(animId);
+  gameLoop();
+}
+
+// =====================================================
+// GAME LOOP
+// =====================================================
+function gameLoop() {
+  animId = requestAnimationFrame(gameLoop);
+  update();
+  draw();
+}
+
+function update() {
+  if (countdownTimer > 0) {
+    countdownTimer--;
+    countdownVal = Math.ceil(countdownTimer / 60);
+    if (countdownTimer === 0) {
+      gameRunning = true;
+      if (gameState === 'host' || gameState === 'local') {
+        // Reset puck direction
+        puck.vx = (Math.random() > 0.5 ? 1 : -1) * PUCK_SPEED_INIT;
+        puck.vy = (Math.random() - 0.5) * PUCK_SPEED_INIT * 0.8;
+      }
+    }
+    return;
+  }
+  if (!gameRunning) return;
+
+  // Handle input for local or appropriate player
+  if (gameState === 'local' || gameState === 'host') {
+    movePaddle(p1, 'p1');
+  }
+  if (gameState === 'local' || gameState === 'guest') {
+    // guest controls p2 locally but sends to host
+    if (gameState === 'guest') {
+      movePaddle(p2, 'p2');
+      sendGuestInput();
+    } else {
+      movePaddle(p2, 'p2');
+    }
+  }
+
+  if (gameState === 'host' || gameState === 'local') {
+    updatePhysics();
+    checkGoals();
+    if (gameState === 'host') broadcastState();
+  }
+  // guests just receive state updates
+}
+
+function movePaddle(paddle, which) {
+  let dx = 0, dy = 0;
+  if (which === 'p1') {
+    if (keys['KeyA'] || keys['ArrowLeft'] && gameState==='local') dx = -PADDLE_SPEED;
+    if (keys['KeyD'] || keys['ArrowRight'] && gameState==='local') dx = PADDLE_SPEED;
+    if (keys['KeyW'] || keys['ArrowUp'] && gameState==='local') dy = -PADDLE_SPEED;
+    if (keys['KeyS'] || keys['ArrowDown'] && gameState==='local') dy = PADDLE_SPEED;
+    if (keys['KeyA']) dx = -PADDLE_SPEED;
+    if (keys['KeyD']) dx = PADDLE_SPEED;
+    if (keys['KeyW']) dy = -PADDLE_SPEED;
+    if (keys['KeyS']) dy = PADDLE_SPEED;
+  } else {
+    if (keys['ArrowLeft']) dx = -PADDLE_SPEED;
+    if (keys['ArrowRight']) dx = PADDLE_SPEED;
+    if (keys['ArrowUp']) dy = -PADDLE_SPEED;
+    if (keys['ArrowDown']) dy = PADDLE_SPEED;
+  }
+
+  paddle.x = clamp(paddle.x + dx, paddle.r, W - paddle.r);
+  paddle.y = clamp(paddle.y + dy, paddle.r, H - paddle.r);
+
+  // Restrict to own half (with some buffer)
+  if (which === 'p1') paddle.x = clamp(paddle.x, paddle.r, W/2 - 10);
+  if (which === 'p2') paddle.x = clamp(paddle.x, W/2 + 10, W - paddle.r);
+}
+
+function updatePhysics() {
+  // Move puck
+  puck.x += puck.vx;
+  puck.y += puck.vy;
+
+  // Wall bounce top/bottom
+  if (puck.y - puck.r < 0) { puck.y = puck.r; puck.vy = Math.abs(puck.vy); }
+  if (puck.y + puck.r > H) { puck.y = H - puck.r; puck.vy = -Math.abs(puck.vy); }
+
+  // Wall bounce left/right (outside goal)
+  const goalTop = H/2 - H*0.18;
+  const goalBot = H/2 + H*0.18;
+
+  if (puck.x - puck.r < 0) {
+    if (puck.y < goalTop || puck.y > goalBot) {
+      puck.x = puck.r; puck.vx = Math.abs(puck.vx);
+    }
+  }
+  if (puck.x + puck.r > W) {
+    if (puck.y < goalTop || puck.y > goalBot) {
+      puck.x = W - puck.r; puck.vx = -Math.abs(puck.vx);
+    }
+  }
+
+  // Paddle collisions
+  collidePaddlePuck(p1);
+  collidePaddlePuck(p2);
+
+  // Clamp speed
+  const spd = Math.sqrt(puck.vx**2 + puck.vy**2);
+  if (spd > PUCK_MAX_SPEED) {
+    puck.vx = puck.vx / spd * PUCK_MAX_SPEED;
+    puck.vy = puck.vy / spd * PUCK_MAX_SPEED;
+  }
+}
+
+function collidePaddlePuck(paddle) {
+  const dx = puck.x - paddle.x;
+  const dy = puck.y - paddle.y;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  const minDist = puck.r + paddle.r;
+
+  if (dist < minDist && dist > 0) {
+    // Push apart
+    const nx = dx / dist;
+    const ny = dy / dist;
+    const overlap = minDist - dist;
+    puck.x += nx * overlap;
+    puck.y += ny * overlap;
+
+    // Reflect velocity
+    const dot = puck.vx * nx + puck.vy * ny;
+    puck.vx -= 2 * dot * nx;
+    puck.vy -= 2 * dot * ny;
+
+    // Add paddle velocity boost
+    puck.vx += nx * 1.5;
+    puck.vy += ny * 1.5;
+
+    // Minimum speed after hit
+    const spd = Math.sqrt(puck.vx**2 + puck.vy**2);
+    if (spd < PUCK_SPEED_INIT) {
+      puck.vx = puck.vx / spd * PUCK_SPEED_INIT;
+      puck.vy = puck.vy / spd * PUCK_SPEED_INIT;
+    }
+  }
+}
+
+function checkGoals() {
+  const goalTop = H/2 - H*0.18;
+  const goalBot = H/2 + H*0.18;
+
+  // P2 scores (puck past left edge)
+  if (puck.x + puck.r < 0 && puck.y > goalTop && puck.y < goalBot) {
+    onGoal('p2');
+  }
+  // P1 scores (puck past right edge)
+  if (puck.x - puck.r > W && puck.y > goalTop && puck.y < goalBot) {
+    onGoal('p1');
+  }
+}
+
+function onGoal(scorer) {
+  gameRunning = false;
+  score[scorer]++;
+  updateScoreDisplay();
+
+  triggerGoalFlash(scorer);
+
+  if (gameState === 'host') {
+    channel.postMessage({ type: 'reset', scorer });
+    if (score.p1 >= WINNING_SCORE || score.p2 >= WINNING_SCORE) {
+      const winner = score.p1 >= WINNING_SCORE ? 'PLAYER 1' : 'PLAYER 2';
+      channel.postMessage({ type: 'gameover', winner });
+      setTimeout(() => showWin(winner), 800);
+      return;
+    }
+  }
+
+  if (score.p1 >= WINNING_SCORE || score.p2 >= WINNING_SCORE) {
+    const winner = score.p1 >= WINNING_SCORE ? 'PLAYER 1' : 'PLAYER 2';
+    setTimeout(() => showWin(winner), 800);
+    return;
+  }
+
+  setTimeout(() => { initObjects(); startCountdown(3); }, 1200);
+}
+
+function resetAfterGoal(scorer) {
+  score[scorer]++;
+  updateScoreDisplay();
+  triggerGoalFlash(scorer);
+  initObjects();
+}
+
+// =====================================================
+// MULTIPLAYER SYNC
+// =====================================================
+let guestP2 = { x: 0, y: 0 };
+
+function sendGuestInput() {
+  if (!channel) return;
+  channel.postMessage({ type: 'input', x: p2.x, y: p2.y });
+}
+
+function applyGuestInput(msg) {
+  p2.x = msg.x;
+  p2.y = msg.y;
+}
+
+function broadcastState() {
+  if (!channel) return;
+  channel.postMessage({
+    type: 'state',
+    px: puck.x, py: puck.y, pvx: puck.vx, pvy: puck.vy,
+    p1x: p1.x, p1y: p1.y,
+    p2x: p2.x, p2y: p2.y,
+    running: gameRunning, countdown: countdownTimer
+  });
+}
+
+function applyHostState(msg) {
+  puck.x = msg.px; puck.y = msg.py;
+  puck.vx = msg.pvx; puck.vy = msg.pvy;
+  p1.x = msg.p1x; p1.y = msg.p1y;
+  if (gameState === 'host') {
+    p2.x = msg.p2x; p2.y = msg.p2y;
+  }
+  gameRunning = msg.running;
+  countdownTimer = msg.countdown;
+}
+
+// =====================================================
+// DRAWING
+// =====================================================
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0, '#06101a');
+  bg.addColorStop(1, '#040c14');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Ice texture lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.025)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < H; i += 18) {
+    ctx.beginPath();
+    ctx.moveTo(0, i); ctx.lineTo(W, i);
+    ctx.stroke();
+  }
+
+  // Center line
+  ctx.setLineDash([8, 8]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Center circle
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(W/2, H/2, 50, 0, Math.PI*2); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.beginPath(); ctx.arc(W/2, H/2, 90, 0, Math.PI*2); ctx.stroke();
+
+  // Goals
+  const goalTop = H/2 - H*0.18;
+  const goalBot = H/2 + H*0.18;
+  const goalDepth = 18;
+
+  // P1 goal (left)
+  const grd1 = ctx.createLinearGradient(0, 0, goalDepth, 0);
+  grd1.addColorStop(0, 'rgba(0,240,255,0.15)');
+  grd1.addColorStop(1, 'transparent');
+  ctx.fillStyle = grd1;
+  ctx.fillRect(0, goalTop, goalDepth, goalBot - goalTop);
+  ctx.strokeStyle = 'rgba(0,240,255,0.5)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, goalTop); ctx.lineTo(goalDepth, goalTop);
+  ctx.moveTo(0, goalBot); ctx.lineTo(goalDepth, goalBot);
+  ctx.stroke();
+
+  // P2 goal (right)
+  const grd2 = ctx.createLinearGradient(W, 0, W - goalDepth, 0);
+  grd2.addColorStop(0, 'rgba(255,45,120,0.15)');
+  grd2.addColorStop(1, 'transparent');
+  ctx.fillStyle = grd2;
+  ctx.fillRect(W - goalDepth, goalTop, goalDepth, goalBot - goalTop);
+  ctx.strokeStyle = 'rgba(255,45,120,0.5)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(W, goalTop); ctx.lineTo(W - goalDepth, goalTop);
+  ctx.moveTo(W, goalBot); ctx.lineTo(W - goalDepth, goalBot);
+  ctx.stroke();
+
+  // Paddles
+  drawPaddle(p1, '#00f0ff', '#003344');
+  drawPaddle(p2, '#ff2d78', '#330018');
+
+  // Puck
+  drawPuck();
+
+  // Countdown overlay
+  if (countdownTimer > 0 && countdownVal > 0) {
+    ctx.fillStyle = 'rgba(4,8,15,0.55)';
+    ctx.fillRect(0, 0, W, H);
+
+    const alpha = Math.sin((countdownTimer % 60) / 60 * Math.PI);
+    ctx.globalAlpha = 0.3 + alpha * 0.7;
+    ctx.font = `bold ${W*0.35}px 'Bebas Neue', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // Glow
+    ctx.shadowColor = '#00f0ff';
+    ctx.shadowBlur = 40;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(countdownVal, W/2, H/2);
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawPaddle(p, color, shadowColor) {
+  // Shadow / glow
+  const grd = ctx.createRadialGradient(p.x, p.y, p.r*0.3, p.x, p.y, p.r*1.8);
+  grd.addColorStop(0, color + '44');
+  grd.addColorStop(1, 'transparent');
+  ctx.fillStyle = grd;
+  ctx.beginPath(); ctx.arc(p.x, p.y, p.r*1.8, 0, Math.PI*2); ctx.fill();
+
+  // Outer ring
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 12;
+  ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.stroke();
+
+  // Inner fill
+  const innerGrd = ctx.createRadialGradient(p.x - p.r*0.2, p.y - p.r*0.2, 0, p.x, p.y, p.r);
+  innerGrd.addColorStop(0, shadowColor + 'ee');
+  innerGrd.addColorStop(1, shadowColor + 'aa');
+  ctx.fillStyle = innerGrd;
+  ctx.beginPath(); ctx.arc(p.x, p.y, p.r - 2, 0, Math.PI*2); ctx.fill();
+
+  // Inner circle detail
+  ctx.strokeStyle = color + '88';
+  ctx.lineWidth = 1;
+  ctx.shadowBlur = 0;
+  ctx.beginPath(); ctx.arc(p.x, p.y, p.r*0.45, 0, Math.PI*2); ctx.stroke();
+
+  // Center dot
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+function drawPuck() {
+  // Glow
+  const grd = ctx.createRadialGradient(puck.x, puck.y, 0, puck.x, puck.y, puck.r*2.5);
+  grd.addColorStop(0, 'rgba(255,255,255,0.3)');
+  grd.addColorStop(1, 'transparent');
+  ctx.fillStyle = grd;
+  ctx.beginPath(); ctx.arc(puck.x, puck.y, puck.r*2.5, 0, Math.PI*2); ctx.fill();
+
+  // Body
+  ctx.shadowColor = 'rgba(255,255,255,0.6)';
+  ctx.shadowBlur = 8;
+  const pGrd = ctx.createRadialGradient(puck.x - puck.r*0.3, puck.y - puck.r*0.3, 0, puck.x, puck.y, puck.r);
+  pGrd.addColorStop(0, '#ffffff');
+  pGrd.addColorStop(0.6, '#ccddee');
+  pGrd.addColorStop(1, '#8899aa');
+  ctx.fillStyle = pGrd;
+  ctx.beginPath(); ctx.arc(puck.x, puck.y, puck.r, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Shine
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.beginPath(); ctx.arc(puck.x - puck.r*0.3, puck.y - puck.r*0.35, puck.r*0.25, 0, Math.PI*2); ctx.fill();
+}
+
+// =====================================================
+// UI HELPERS
+// =====================================================
+function updateScoreDisplay() {
+  document.getElementById('score-p1').textContent = score.p1;
+  document.getElementById('score-p2').textContent = score.p2;
+}
+
+function triggerGoalFlash(scorer) {
+  const el = document.getElementById('goal-flash');
+  el.className = 'goal-flash ' + scorer;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 400);
+}
+
+function showWin(winner) {
+  gameRunning = false;
+  const overlay = document.getElementById('win-overlay');
+  const title = document.getElementById('win-title');
+  title.textContent = winner + ' WINS!';
+  title.style.color = winner.includes('1') ? 'var(--p1)' : 'var(--p2)';
+  overlay.style.display = 'flex';
+}
+
+function resetGame() {
+  document.getElementById('win-overlay').style.display = 'none';
+  score = { p1: 0, p2: 0 };
+  updateScoreDisplay();
+  initObjects();
+  startCountdown(3);
+}
+
+function backToLobby() {
+  document.getElementById('win-overlay').style.display = 'none';
+  if (animId) { cancelAnimationFrame(animId); animId = null; }
+  if (channel) { channel.close(); channel = null; }
+  if (roomId) { localStorage.removeItem('airhockey_room_' + roomId); }
+  document.getElementById('game-area').style.display = 'none';
+  document.getElementById('lobby').style.display = 'flex';
+  document.getElementById('main-menu').classList.remove('hidden');
+  document.getElementById('create-card').classList.add('hidden');
+  document.getElementById('join-card').classList.add('hidden');
+}
+
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+// =====================================================
+// KEYBOARD
+// =====================================================
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+
+  // Prevent arrow keys from scrolling
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.key)) {
+    e.preventDefault();
+  }
+});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// =====================================================
+// MOUSE / TOUCH CONTROL (smooth paddle)
+// =====================================================
+canvas && canvas.addEventListener('mousemove', onMouseMove);
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Attach mouse to canvas after game starts
+});
+
+function onMouseMove(e) {
+  if (!gameRunning) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (W / rect.width);
+  const my = (e.clientY - rect.top) * (H / rect.height);
+
+  if (gameState === 'local' || gameState === 'host') {
+    if (mx < W/2) { p1.x = clamp(mx, PADDLE_R, W/2 - 10); p1.y = clamp(my, PADDLE_R, H - PADDLE_R); }
+  }
+  if (gameState === 'local') {
+    if (mx >= W/2) { p2.x = clamp(mx, W/2 + 10, W - PADDLE_R); p2.y = clamp(my, PADDLE_R, H - PADDLE_R); }
+  }
+}
+
+// Touch
+document.addEventListener('touchmove', e => {
+  if (!canvas || !gameRunning) return;
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  for (const t of e.touches) {
+    const mx = (t.clientX - rect.left) * (W / rect.width);
+    const my = (t.clientY - rect.top) * (H / rect.height);
+    if (mx < W/2 && (gameState === 'local' || gameState === 'host')) {
+      p1.x = clamp(mx, PADDLE_R, W/2 - 10); p1.y = clamp(my, PADDLE_R, H - PADDLE_R);
+    }
+    if (mx >= W/2 && (gameState === 'local' || gameState === 'guest')) {
+      p2.x = clamp(mx, W/2 + 10, W - PADDLE_R); p2.y = clamp(my, PADDLE_R, H - PADDLE_R);
+    }
+  }
+}, { passive: false });
+
+// Attach mouse listener to canvas when it exists
+function attachCanvasEvents() {
+  const c = document.getElementById('game-canvas');
+  if (c) c.addEventListener('mousemove', onMouseMove);
+}
+attachCanvasEvents();
+
+// Resize handler
+window.addEventListener('resize', () => {
+  if (gameState && canvas) {
+    const maxW = Math.min(window.innerWidth - 32, 600);
+    const maxH = Math.min(window.innerHeight * 0.65, 420);
+    const scaleX = maxW / W;
+    const scaleY = maxH / H;
+    const scale = Math.min(scaleX, scaleY);
+    canvas.style.width = (W * scale) + 'px';
+    canvas.style.height = (H * scale) + 'px';
+  }
+});
+</script>
+</body>
+</html>
