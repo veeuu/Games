@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AIR HOCKEY</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&display=swap');
 
@@ -502,7 +503,8 @@ let W, H;
 let gameState = null; // 'local' | 'host' | 'guest'
 let animId = null;
 let roomId = null;
-let channel = null; // BroadcastChannel
+let peer = null; // PeerJS peer
+let conn = null; // PeerJS connection
 let isHost = false;
 
 // Physics objects
@@ -515,7 +517,7 @@ let countdownVal = 0;
 let gameRunning = false;
 
 // =====================================================
-// ROOM SYSTEM (BroadcastChannel - same browser tabs)
+// ROOM SYSTEM (PeerJS WebRTC — works across devices)
 // =====================================================
 function genRoomId() {
   return Math.random().toString(36).substring(2,8).toUpperCase();
@@ -525,37 +527,34 @@ function showCreate() {
   document.getElementById('main-menu').classList.add('hidden');
   document.getElementById('create-card').classList.remove('hidden');
   document.getElementById('join-card').classList.add('hidden');
+  document.getElementById('create-status').textContent = 'CONNECTING TO SERVER...';
+  document.getElementById('create-status').className = 'status-msg status-wait';
 
   roomId = genRoomId();
   document.getElementById('create-code').textContent = roomId;
 
-  // Open channel and wait for player 2
-  channel = new BroadcastChannel('airhockey_' + roomId);
-  isHost = true;
+  if (peer) { peer.destroy(); peer = null; }
 
-  // Store room in localStorage so same-browser guest can find it
-  localStorage.setItem('airhockey_room_' + roomId, JSON.stringify({ created: Date.now() }));
+  peer = new Peer('airhockey-' + roomId);
 
-  document.getElementById('create-status').textContent = 'WAITING FOR OPPONENT...';
-  document.getElementById('create-status').className = 'status-msg status-wait';
+  peer.on('open', () => {
+    document.getElementById('create-status').textContent = 'WAITING FOR OPPONENT...';
+    document.getElementById('create-status').className = 'status-msg status-wait';
+  });
 
-  channel.onmessage = (e) => {
-    const msg = e.data;
-    if (msg.type === 'join') {
-      // Guest joined!
-      document.getElementById('create-status').textContent = 'OPPONENT CONNECTED! STARTING...';
-      document.getElementById('create-status').className = 'status-msg status-ok';
-      channel.postMessage({ type: 'start', roomId });
-      setTimeout(() => startGame('host'), 600);
-    }
-    if (msg.type === 'input' && !isHost) {
-      // guest input (when host receives guest paddle moves)
-      applyGuestInput(msg);
-    }
-    if (msg.type === 'state' && !isHost) {
-      applyHostState(msg);
-    }
-  };
+  peer.on('connection', (c) => {
+    conn = c;
+    isHost = true;
+    setupConnection();
+    document.getElementById('create-status').textContent = 'OPPONENT CONNECTED! STARTING...';
+    document.getElementById('create-status').className = 'status-msg status-ok';
+    setTimeout(() => startGame('host'), 800);
+  });
+
+  peer.on('error', (err) => {
+    document.getElementById('create-status').textContent = 'CONNECTION ERROR — TRY AGAIN';
+    document.getElementById('create-status').className = 'status-msg status-err';
+  });
 }
 
 function showJoin() {
@@ -571,39 +570,54 @@ function joinRoom() {
   const code = document.getElementById('join-input').value.trim().toUpperCase();
   if (code.length < 4) { showJoinError('ENTER A VALID CODE'); return; }
 
-  // Check localStorage for room
-  const roomData = localStorage.getItem('airhockey_room_' + code);
-  if (!roomData) { showJoinError('ROOM NOT FOUND — MAKE SURE HOST IS READY'); return; }
-
-  // Check room not too old (>10min)
-  const { created } = JSON.parse(roomData);
-  if (Date.now() - created > 600000) { showJoinError('ROOM EXPIRED'); return; }
-
-  roomId = code;
-  isHost = false;
-  channel = new BroadcastChannel('airhockey_' + roomId);
-
-  channel.onmessage = (e) => {
-    const msg = e.data;
-    if (msg.type === 'start') {
-      startGame('guest');
-    }
-    if (msg.type === 'state') {
-      applyHostState(msg);
-    }
-    if (msg.type === 'reset') {
-      resetAfterGoal(msg.scorer);
-    }
-    if (msg.type === 'gameover') {
-      showWin(msg.winner);
-    }
-  };
-
-  // Signal host we joined
-  channel.postMessage({ type: 'join', roomId });
   document.getElementById('join-error').textContent = 'CONNECTING...';
   document.getElementById('join-error').className = 'status-msg status-wait';
   document.getElementById('join-error').classList.remove('hidden');
+
+  if (peer) { peer.destroy(); peer = null; }
+
+  roomId = code;
+  isHost = false;
+  peer = new Peer();
+
+  peer.on('open', () => {
+    conn = peer.connect('airhockey-' + roomId, { reliable: false });
+
+    conn.on('open', () => {
+      setupConnection();
+      startGame('guest');
+    });
+
+    conn.on('error', () => showJoinError('COULD NOT CONNECT — CHECK THE CODE'));
+  });
+
+  peer.on('error', (err) => {
+    if (err.type === 'peer-unavailable') {
+      showJoinError('ROOM NOT FOUND — MAKE SURE HOST IS READY');
+    } else {
+      showJoinError('CONNECTION ERROR — TRY AGAIN');
+    }
+  });
+}
+
+function setupConnection() {
+  conn.on('data', (msg) => {
+    if (isHost) {
+      // host receives guest input
+      if (msg.type === 'input') applyGuestInput(msg);
+    } else {
+      // guest receives game state
+      if (msg.type === 'state')    applyHostState(msg);
+      if (msg.type === 'reset')    resetAfterGoal(msg.scorer);
+      if (msg.type === 'gameover') showWin(msg.winner);
+    }
+  });
+
+  conn.on('close', () => {
+    if (gameState === 'host' || gameState === 'guest') {
+      showToast('OPPONENT DISCONNECTED');
+    }
+  });
 }
 
 function showJoinError(msg) {
@@ -614,7 +628,8 @@ function showJoinError(msg) {
 }
 
 function backMenu() {
-  if (channel) { channel.close(); channel = null; }
+  if (conn)  { conn.close();    conn = null; }
+  if (peer)  { peer.destroy();  peer = null; }
   document.getElementById('main-menu').classList.remove('hidden');
   document.getElementById('create-card').classList.add('hidden');
   document.getElementById('join-card').classList.add('hidden');
@@ -849,10 +864,10 @@ function onGoal(scorer) {
   triggerGoalFlash(scorer);
 
   if (gameState === 'host') {
-    channel.postMessage({ type: 'reset', scorer });
+    conn.send({ type: 'reset', scorer });
     if (score.p1 >= WINNING_SCORE || score.p2 >= WINNING_SCORE) {
       const winner = score.p1 >= WINNING_SCORE ? 'PLAYER 1' : 'PLAYER 2';
-      channel.postMessage({ type: 'gameover', winner });
+      conn.send({ type: 'gameover', winner });
       setTimeout(() => showWin(winner), 800);
       return;
     }
@@ -880,8 +895,8 @@ function resetAfterGoal(scorer) {
 let guestP2 = { x: 0, y: 0 };
 
 function sendGuestInput() {
-  if (!channel) return;
-  channel.postMessage({ type: 'input', x: p2.x, y: p2.y });
+  if (!conn) return;
+  conn.send({ type: 'input', x: p2.x, y: p2.y });
 }
 
 function applyGuestInput(msg) {
@@ -890,8 +905,8 @@ function applyGuestInput(msg) {
 }
 
 function broadcastState() {
-  if (!channel) return;
-  channel.postMessage({
+  if (!conn) return;
+  conn.send({
     type: 'state',
     px: puck.x, py: puck.y, pvx: puck.vx, pvy: puck.vy,
     p1x: p1.x, p1y: p1.y,
@@ -1099,8 +1114,8 @@ function resetGame() {
 function backToLobby() {
   document.getElementById('win-overlay').style.display = 'none';
   if (animId) { cancelAnimationFrame(animId); animId = null; }
-  if (channel) { channel.close(); channel = null; }
-  if (roomId) { localStorage.removeItem('airhockey_room_' + roomId); }
+  if (conn)  { conn.close();   conn = null; }
+  if (peer)  { peer.destroy(); peer = null; }
   document.getElementById('game-area').style.display = 'none';
   document.getElementById('lobby').style.display = 'flex';
   document.getElementById('main-menu').classList.remove('hidden');
