@@ -624,7 +624,9 @@
       <div class="panel">
         <div class="panel-label">Controls</div>
         <div style="display:flex;flex-direction:column;gap:8px;">
-          <button class="btn-primary" id="btn-camera">Open Camera</button>
+          <button class="btn-primary" id="btn-camera">📷 Open Camera</button>
+          <button class="btn-primary" id="btn-upload">🖼 Upload Image</button>
+          <input type="file" id="file-input" accept="image/*" style="display:none">
           <button class="btn-primary" id="btn-capture" disabled>📸 Snap Photo</button>
           <button class="btn-primary" id="btn-start" disabled>Start Puzzle</button>
           <button class="btn-ghost"   id="btn-reset"  disabled>Shuffle Again</button>
@@ -670,6 +672,8 @@
   const statMoves   = document.getElementById('stat-moves');
   const statTime    = document.getElementById('stat-time');
   const btnCamera   = document.getElementById('btn-camera');
+  const btnUpload   = document.getElementById('btn-upload');
+  const fileInput   = document.getElementById('file-input');
   const btnCapture  = document.getElementById('btn-capture');
   const btnStart    = document.getElementById('btn-start');
   const btnReset    = document.getElementById('btn-reset');
@@ -730,6 +734,52 @@
     } catch(e) {
       setStatus('camera unavailable');
     }
+  });
+
+  // Upload image
+  btnUpload.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const PS = getPuzzleSize();
+        const canvas = document.createElement('canvas');
+        canvas.width = PS; canvas.height = PS;
+        const ctx = canvas.getContext('2d');
+        // crop to square center
+        const side = Math.min(img.width, img.height);
+        const sx = (img.width - side) / 2, sy = (img.height - side) / 2;
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, PS, PS);
+        capturedURL = canvas.toDataURL('image/jpeg', 0.92);
+
+        // stop camera if running
+        if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+        video.style.display = 'none';
+        camIdle.style.display = 'none';
+
+        // show preview
+        const preview = document.createElement('img');
+        preview.src = capturedURL;
+        preview.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+        const existing = camOverlay.querySelectorAll('img');
+        existing.forEach(i => i.remove());
+        camOverlay.appendChild(preview);
+
+        stageLabel.textContent = 'PHOTO';
+        btnCamera.disabled = false;
+        btnCapture.disabled = true;
+        btnStart.disabled = false;
+        btnRetake.disabled = false;
+        fileInput.value = '';
+        setStatus('image loaded! — start the puzzle', 'active');
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
   });
 
   // Capture with countdown
@@ -811,6 +861,7 @@
     btnReset.disabled = true;
     btnRetake.disabled = true;
     btnSolve.disabled = true;
+    fileInput.value = '';
     stopSolve();
     clearInterval(timerInterval);
     statMoves.textContent = '0';
