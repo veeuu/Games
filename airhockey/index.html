@@ -717,27 +717,26 @@ function update() {
     if (countdownTimer === 0) {
       gameRunning = true;
       if (gameState === 'host' || gameState === 'local') {
-        // Reset puck direction
         puck.vx = (Math.random() > 0.5 ? 1 : -1) * PUCK_SPEED_INIT;
         puck.vy = (Math.random() - 0.5) * PUCK_SPEED_INIT * 0.8;
       }
     }
+    // guest still sends paddle position during countdown
+    if (gameState === 'guest') { movePaddle(p2, 'p2'); sendGuestInput(); }
     return;
   }
   if (!gameRunning) return;
 
-  // Handle input for local or appropriate player
+  // Move paddles
   if (gameState === 'local' || gameState === 'host') {
     movePaddle(p1, 'p1');
   }
-  if (gameState === 'local' || gameState === 'guest') {
-    // guest controls p2 locally but sends to host
-    if (gameState === 'guest') {
-      movePaddle(p2, 'p2');
-      sendGuestInput();
-    } else {
-      movePaddle(p2, 'p2');
-    }
+  if (gameState === 'local') {
+    movePaddle(p2, 'p2');
+  }
+  if (gameState === 'guest') {
+    movePaddle(p2, 'p2');
+    sendGuestInput();
   }
 
   if (gameState === 'host' || gameState === 'local') {
@@ -745,31 +744,35 @@ function update() {
     checkGoals();
     if (gameState === 'host') broadcastState();
   }
-  // guests just receive state updates
 }
 
 function movePaddle(paddle, which) {
   let dx = 0, dy = 0;
   if (which === 'p1') {
-    if (keys['KeyA'] || keys['ArrowLeft'] && gameState==='local') dx = -PADDLE_SPEED;
-    if (keys['KeyD'] || keys['ArrowRight'] && gameState==='local') dx = PADDLE_SPEED;
-    if (keys['KeyW'] || keys['ArrowUp'] && gameState==='local') dy = -PADDLE_SPEED;
-    if (keys['KeyS'] || keys['ArrowDown'] && gameState==='local') dy = PADDLE_SPEED;
+    // host/local p1: WASD only (arrows reserved for p2 in local mode)
     if (keys['KeyA']) dx = -PADDLE_SPEED;
-    if (keys['KeyD']) dx = PADDLE_SPEED;
+    if (keys['KeyD']) dx =  PADDLE_SPEED;
     if (keys['KeyW']) dy = -PADDLE_SPEED;
-    if (keys['KeyS']) dy = PADDLE_SPEED;
+    if (keys['KeyS']) dy =  PADDLE_SPEED;
+    // in local mode p1 can also use arrows
+    if (gameState === 'local') {
+      if (keys['ArrowLeft'])  dx = -PADDLE_SPEED;
+      if (keys['ArrowRight']) dx =  PADDLE_SPEED;
+      if (keys['ArrowUp'])    dy = -PADDLE_SPEED;
+      if (keys['ArrowDown'])  dy =  PADDLE_SPEED;
+    }
   } else {
-    if (keys['ArrowLeft']) dx = -PADDLE_SPEED;
-    if (keys['ArrowRight']) dx = PADDLE_SPEED;
-    if (keys['ArrowUp']) dy = -PADDLE_SPEED;
-    if (keys['ArrowDown']) dy = PADDLE_SPEED;
+    // p2: arrows in local, WASD or arrows when guest (own device)
+    if (keys['ArrowLeft']  || keys['KeyA']) dx = -PADDLE_SPEED;
+    if (keys['ArrowRight'] || keys['KeyD']) dx =  PADDLE_SPEED;
+    if (keys['ArrowUp']    || keys['KeyW']) dy = -PADDLE_SPEED;
+    if (keys['ArrowDown']  || keys['KeyS']) dy =  PADDLE_SPEED;
   }
 
   paddle.x = clamp(paddle.x + dx, paddle.r, W - paddle.r);
   paddle.y = clamp(paddle.y + dy, paddle.r, H - paddle.r);
 
-  // Restrict to own half (with some buffer)
+  // Restrict to own half
   if (which === 'p1') paddle.x = clamp(paddle.x, paddle.r, W/2 - 10);
   if (which === 'p2') paddle.x = clamp(paddle.x, W/2 + 10, W - paddle.r);
 }
@@ -919,11 +922,10 @@ function applyHostState(msg) {
   puck.x = msg.px; puck.y = msg.py;
   puck.vx = msg.pvx; puck.vy = msg.pvy;
   p1.x = msg.p1x; p1.y = msg.p1y;
-  if (gameState === 'host') {
-    p2.x = msg.p2x; p2.y = msg.p2y;
-  }
+  // never overwrite p2 for guest — guest controls p2 locally
   gameRunning = msg.running;
   countdownTimer = msg.countdown;
+  countdownVal = Math.ceil(countdownTimer / 60);
 }
 
 // =====================================================
@@ -1162,11 +1164,15 @@ function onMouseMove(e) {
   const mx = (e.clientX - rect.left) * (W / rect.width);
   const my = (e.clientY - rect.top) * (H / rect.height);
 
-  if (gameState === 'local' || gameState === 'host') {
+  if (gameState === 'guest') {
+    // guest always controls p2 with full canvas mouse
+    p2.x = clamp(mx, W/2 + 10, W - PADDLE_R);
+    p2.y = clamp(my, PADDLE_R, H - PADDLE_R);
+  } else if (gameState === 'host' || gameState === 'local') {
     if (mx < W/2) { p1.x = clamp(mx, PADDLE_R, W/2 - 10); p1.y = clamp(my, PADDLE_R, H - PADDLE_R); }
-  }
-  if (gameState === 'local') {
-    if (mx >= W/2) { p2.x = clamp(mx, W/2 + 10, W - PADDLE_R); p2.y = clamp(my, PADDLE_R, H - PADDLE_R); }
+    if (gameState === 'local' && mx >= W/2) {
+      p2.x = clamp(mx, W/2 + 10, W - PADDLE_R); p2.y = clamp(my, PADDLE_R, H - PADDLE_R);
+    }
   }
 }
 
@@ -1178,11 +1184,16 @@ document.addEventListener('touchmove', e => {
   for (const t of e.touches) {
     const mx = (t.clientX - rect.left) * (W / rect.width);
     const my = (t.clientY - rect.top) * (H / rect.height);
-    if (mx < W/2 && (gameState === 'local' || gameState === 'host')) {
-      p1.x = clamp(mx, PADDLE_R, W/2 - 10); p1.y = clamp(my, PADDLE_R, H - PADDLE_R);
-    }
-    if (mx >= W/2 && (gameState === 'local' || gameState === 'guest')) {
-      p2.x = clamp(mx, W/2 + 10, W - PADDLE_R); p2.y = clamp(my, PADDLE_R, H - PADDLE_R);
+    // guest always controls p2 regardless of touch position
+    if (gameState === 'guest') {
+      p2.x = clamp(mx, W/2 + 10, W - PADDLE_R);
+      p2.y = clamp(my, PADDLE_R, H - PADDLE_R);
+    } else if (gameState === 'host' && mx < W/2) {
+      p1.x = clamp(mx, PADDLE_R, W/2 - 10);
+      p1.y = clamp(my, PADDLE_R, H - PADDLE_R);
+    } else if (gameState === 'local') {
+      if (mx < W/2) { p1.x = clamp(mx, PADDLE_R, W/2 - 10); p1.y = clamp(my, PADDLE_R, H - PADDLE_R); }
+      else          { p2.x = clamp(mx, W/2 + 10, W - PADDLE_R); p2.y = clamp(my, PADDLE_R, H - PADDLE_R); }
     }
   }
 }, { passive: false });
