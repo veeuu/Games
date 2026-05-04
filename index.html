@@ -4,235 +4,548 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Games by Veeuu</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  :root {
-    --bg: #08080f;
-    --surface: #10101e;
-    --surface2: #17172a;
-    --border: rgba(180,138,255,0.15);
-    --accent: #b48aff;
-    --accent2: #5ee7ff;
-    --accent3: #ff5ec4;
-    --text: #f0eeff;
-    --muted: #6b6b9a;
-  }
+:root {
+  --bg: #07070d;
+  --surface: #0e0e1a;
+  --surface2: #131325;
+  --gold: #f0c040;
+  --ice: #40d4f0;
+  --coral: #f05060;
+  --lime: #70e080;
+  --violet: #a060f0;
+  --text: #e8e6f8;
+  --muted: #5a587a;
+  --border: rgba(255,255,255,0.06);
+}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Syne', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
 
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(180,138,255,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(180,138,255,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
+/* Noise grain overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.025;
+  pointer-events: none;
+  z-index: 100;
+}
 
-  .blob {
-    position: fixed;
-    border-radius: 50%;
-    filter: blur(100px);
-    opacity: 0.1;
-    pointer-events: none;
-    z-index: 0;
-  }
-  .blob1 { width: 500px; height: 500px; background: var(--accent); top: -150px; left: -150px; }
-  .blob2 { width: 400px; height: 400px; background: var(--accent2); bottom: -100px; right: -100px; }
-  .blob3 { width: 300px; height: 300px; background: var(--accent3); top: 40%; left: 55%; }
+/* Ambient lights */
+.amb {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(120px);
+  opacity: 0.08;
+}
+.amb1 { width: 700px; height: 700px; background: var(--violet); top: -200px; left: -200px; }
+.amb2 { width: 500px; height: 500px; background: var(--ice); bottom: -150px; right: -150px; }
+.amb3 { width: 350px; height: 350px; background: var(--coral); top: 45%; left: 50%; }
 
-  .wrap {
-    position: relative;
-    z-index: 1;
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 0 20px 60px;
-  }
+.wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+}
 
-  header {
-    text-align: center;
-    padding: 60px 0 48px;
-  }
+/* ── HEADER ─────────────────────────────────────── */
+header {
+  padding: 72px 0 56px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 40px;
+}
 
-  .tag {
-    display: inline-block;
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--accent2);
-    border: 1px solid rgba(94,231,255,0.3);
-    border-radius: 100px;
-    padding: 4px 16px;
-    margin-bottom: 20px;
-  }
+.header-left { max-width: 580px; }
 
-  h1 {
-    font-size: clamp(48px, 10vw, 80px);
-    font-weight: 800;
-    letter-spacing: -3px;
-    line-height: 1;
-    background: linear-gradient(135deg, #b48aff 0%, #5ee7ff 50%, #ff5ec4 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 16px;
-  }
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 18px;
+}
+.eyebrow-dot {
+  width: 6px; height: 6px;
+  background: var(--gold);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50% { opacity:0.4; transform:scale(0.7); }
+}
 
-  .subtitle {
-    font-family: 'DM Mono', monospace;
-    font-size: 13px;
-    color: var(--muted);
-    letter-spacing: 1px;
-  }
+h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(72px, 12vw, 120px);
+  line-height: 0.88;
+  letter-spacing: 2px;
+  color: var(--text);
+}
+h1 span {
+  display: block;
+  background: linear-gradient(100deg, var(--gold) 0%, var(--ice) 55%, var(--violet) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 20px;
-  }
+.header-right {
+  text-align: right;
+}
+.game-count {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 80px;
+  line-height: 1;
+  color: rgba(255,255,255,0.05);
+  letter-spacing: -2px;
+}
+.game-count-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
 
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 28px 24px;
-    text-decoration: none;
-    color: var(--text);
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
-  }
-  .card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: var(--card-color, var(--accent));
-    opacity: 0.7;
-  }
-  .card:hover {
-    transform: translateY(-4px);
-    border-color: var(--card-color, var(--accent));
-    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
-  }
+/* ── BENTO GRID ─────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: auto;
+  gap: 16px;
+}
 
-  .card-emoji { font-size: 40px; line-height: 1; }
+/* Card placements */
+.card:nth-child(1) { grid-column: span 7; }
+.card:nth-child(2) { grid-column: span 5; }
+.card:nth-child(3) { grid-column: span 4; }
+.card:nth-child(4) { grid-column: span 4; }
+.card:nth-child(5) { grid-column: span 4; }
+.card:nth-child(6) { grid-column: span 6; }
+.card:nth-child(7) { grid-column: span 6; }
 
-  .card-name {
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-  }
+/* ── CARD BASE ──────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 32px 28px;
+  text-decoration: none;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s cubic-bezier(.22,.68,0,1.2), border-color 0.3s, box-shadow 0.3s;
+  min-height: 220px;
+}
 
-  .card-desc {
-    font-family: 'DM Mono', monospace;
-    font-size: 12px;
-    color: var(--muted);
-    line-height: 1.6;
-    flex: 1;
-  }
+/* Corner accent stripe */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--c) 40%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
 
-  .card-link {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--card-color, var(--accent));
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 4px;
-  }
-  .card-link::after { content: '→'; transition: transform 0.2s; }
-  .card:hover .card-link::after { transform: translateX(4px); }
+/* Icon glow backdrop */
+.card::after {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: var(--c);
+  opacity: 0;
+  filter: blur(60px);
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
 
-  @media (max-width: 500px) {
-    h1 { letter-spacing: -2px; }
-    .grid { grid-template-columns: 1fr; }
-  }
+.card:hover {
+  transform: translateY(-5px) scale(1.005);
+  border-color: rgba(255,255,255,0.12);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.card:hover::before { opacity: 1; }
+.card:hover::after { opacity: 0.12; }
+
+/* ── ICON ───────────────────────────────────────── */
+.icon-wrap {
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  transition: background 0.3s, border-color 0.3s;
+}
+.icon-wrap svg { display: block; }
+.card:hover .icon-wrap {
+  background: color-mix(in srgb, var(--c) 15%, transparent);
+  border-color: color-mix(in srgb, var(--c) 40%, transparent);
+}
+
+/* ── TEXT ───────────────────────────────────────── */
+.card-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 30px;
+  letter-spacing: 1.5px;
+  line-height: 1;
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.card-desc {
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--muted);
+  line-height: 1.7;
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── CTA ────────────────────────────────────────── */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 22px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--c);
+  position: relative;
+  z-index: 1;
+}
+.cta-arrow {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--c);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.25s;
+}
+.cta-arrow svg { transition: transform 0.25s; }
+.card:hover .cta-arrow { background: var(--c); }
+.card:hover .cta-arrow svg path { stroke: #07070d; }
+.card:hover .cta-arrow { transform: rotate(-45deg); }
+
+/* ── LARGE CARD extras ──────────────────────────── */
+.card:nth-child(1) .card-name { font-size: 42px; }
+.card:nth-child(1) .card-desc { max-width: 380px; }
+
+/* ── CARD COLORS ────────────────────────────────── */
+.card:nth-child(1) { --c: var(--lime); }
+.card:nth-child(2) { --c: var(--violet); }
+.card:nth-child(3) { --c: var(--ice); }
+.card:nth-child(4) { --c: var(--gold); }
+.card:nth-child(5) { --c: var(--coral); }
+.card:nth-child(6) { --c: #00e8c8; }
+.card:nth-child(7) { --c: #ff8c40; }
+
+/* ── FOOTER ─────────────────────────────────────── */
+footer {
+  margin-top: 48px;
+  border-top: 1px solid var(--border);
+  padding-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.footer-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 1.5px;
+}
+.status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--lime);
+  letter-spacing: 1.5px;
+}
+.status-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--lime);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* ── RESPONSIVE ─────────────────────────────────── */
+@media (max-width: 700px) {
+  .card:nth-child(n) { grid-column: span 12; }
+  .game-count { display: none; }
+  header { padding: 48px 0 36px; }
+}
+@media (max-width: 900px) and (min-width: 701px) {
+  .card:nth-child(1) { grid-column: span 12; }
+  .card:nth-child(2) { grid-column: span 6; }
+  .card:nth-child(3) { grid-column: span 6; }
+  .card:nth-child(4) { grid-column: span 4; }
+  .card:nth-child(5) { grid-column: span 4; }
+  .card:nth-child(6) { grid-column: span 4; }
+  .card:nth-child(7) { grid-column: span 12; }
+}
 </style>
 </head>
 <body>
 
-<div class="blob blob1"></div>
-<div class="blob blob2"></div>
-<div class="blob blob3"></div>
+<div class="amb amb1"></div>
+<div class="amb amb2"></div>
+<div class="amb amb3"></div>
 
 <div class="wrap">
+
   <header>
-    <div class="tag">✦ game arcade</div>
-    <h1>VEEUU<br>GAMES</h1>
-    <p class="subtitle">pick a game and start playing</p>
+    <div class="header-left">
+      <div class="eyebrow">
+        <span class="eyebrow-dot"></span>
+        Game Arcade · All Systems Go
+      </div>
+      <h1>VEEUU<br><span>GAMES</span></h1>
+    </div>
+    <div class="header-right">
+      <div class="game-count">07</div>
+      <div class="game-count-label">games available</div>
+    </div>
   </header>
 
   <div class="grid">
 
-    <a class="card" href="sliding-puzzle/index.html" style="--card-color:#c8f045;">
-      <div class="card-emoji">🧩</div>
+    <!-- 1 · Face Puzzle -->
+    <a class="card" href="sliding-puzzle/index.html">
+      <div class="icon-wrap">
+        <!-- sliding grid icon -->
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="2" width="11" height="11" rx="2.5" stroke="var(--lime)" stroke-width="1.5"/>
+          <rect x="15" y="2" width="11" height="11" rx="2.5" stroke="var(--lime)" stroke-width="1.5" opacity=".45"/>
+          <rect x="2" y="15" width="11" height="11" rx="2.5" stroke="var(--lime)" stroke-width="1.5" opacity=".45"/>
+          <!-- missing piece indicator -->
+          <rect x="16.5" y="16.5" width="8" height="8" rx="1.5" fill="var(--lime)" opacity=".15" stroke="var(--lime)" stroke-width="1" stroke-dasharray="2 2"/>
+          <!-- arrow suggesting movement -->
+          <path d="M22 14.5 L22 16" stroke="var(--lime)" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M14.5 22 L16 22" stroke="var(--lime)" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
       <div class="card-name">Face Puzzle</div>
-      <div class="card-desc">Snap your face with the camera and solve it as a sliding tile puzzle. Arrow keys or tap to play.</div>
-      <div class="card-link">Play now</div>
+      <div class="card-desc">Snap your face with the camera and solve it as a sliding tile puzzle. Use arrow keys or tap tiles to rearrange them into the original photo.</div>
+      <div class="cta">
+        Play now
+        <span class="cta-arrow">
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 6.5L6.5 1.5M6.5 1.5H2.5M6.5 1.5V5.5" stroke="var(--lime)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </div>
     </a>
 
-    <a class="card" href="memory-card/memory.html" style="--card-color:#b48aff;">
-      <div class="card-emoji">🃏</div>
+    <!-- 2 · Memory Flip -->
+    <a class="card" href="memory-card/memory.html">
+      <div class="icon-wrap">
+        <!-- card flip / two cards icon -->
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="5" width="14" height="19" rx="2.5" stroke="var(--violet)" stroke-width="1.5" opacity=".4"/>
+          <rect x="12" y="4" width="14" height="19" rx="2.5" fill="var(--surface2)" stroke="var(--violet)" stroke-width="1.5"/>
+          <!-- question mark on front card -->
+          <path d="M19 10.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5c0 .65-.4 1.2-1 1.4L21 13" stroke="var(--violet)" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="21" cy="15" r=".75" fill="var(--violet)"/>
+        </svg>
+      </div>
       <div class="card-name">Memory Flip</div>
-      <div class="card-desc">Flip cards and find matching pairs. Race against the clock in easy 4×4 or hard 6×6 mode.</div>
-      <div class="card-link">Play now</div>
+      <div class="card-desc">Flip cards and find all matching pairs. Race against the clock — choose easy 4×4 or hard 6×6 mode.</div>
+      <div class="cta">
+        Play now
+        <span class="cta-arrow">
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 6.5L6.5 1.5M6.5 1.5H2.5M6.5 1.5V5.5" stroke="var(--violet)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </div>
     </a>
 
-    <a class="card" href="number-guess/number.html" style="--card-color:#5ee7ff;">
-      <div class="card-emoji">🔢</div>
+    <!-- 3 · Number Guess -->
+    <a class="card" href="number-guess/number.html">
+      <div class="icon-wrap">
+        <!-- bullseye target icon -->
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="14" cy="14" r="11.5" stroke="var(--ice)" stroke-width="1.5" opacity=".3"/>
+          <circle cx="14" cy="14" r="7.5" stroke="var(--ice)" stroke-width="1.5" opacity=".55"/>
+          <circle cx="14" cy="14" r="3.5" stroke="var(--ice)" stroke-width="1.5"/>
+          <circle cx="14" cy="14" r="1.5" fill="var(--ice)"/>
+          <!-- small crosshair lines -->
+          <line x1="14" y1="1" x2="14" y2="5" stroke="var(--ice)" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+          <line x1="14" y1="23" x2="14" y2="27" stroke="var(--ice)" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+          <line x1="1" y1="14" x2="5" y2="14" stroke="var(--ice)" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+          <line x1="23" y1="14" x2="27" y2="14" stroke="var(--ice)" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+        </svg>
+      </div>
       <div class="card-name">Number Guess</div>
-      <div class="card-desc">Guess the secret number. Get hot or cold hints and see how few tries it takes you.</div>
-      <div class="card-link">Play now</div>
+      <div class="card-desc">Guess the secret number. Hot or cold hints guide you — fewest tries wins.</div>
+      <div class="cta">
+        Play now
+        <span class="cta-arrow">
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 6.5L6.5 1.5M6.5 1.5H2.5M6.5 1.5V5.5" stroke="var(--ice)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </div>
     </a>
 
-    <a class="card" href="simon-says/index.html" style="--card-color:#7c6af7;">
-      <div class="card-emoji">🎮</div>
+    <!-- 4 · Simon Says -->
+    <a class="card" href="simon-says/index.html">
+      <div class="icon-wrap">
+        <!-- four colored quadrant pads icon -->
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- four quadrant buttons -->
+          <rect x="2" y="2" width="11" height="11" rx="2.5" fill="var(--gold)" opacity=".8"/>
+          <rect x="15" y="2" width="11" height="11" rx="2.5" fill="var(--coral)" opacity=".5"/>
+          <rect x="2" y="15" width="11" height="11" rx="2.5" fill="var(--ice)" opacity=".5"/>
+          <rect x="15" y="15" width="11" height="11" rx="2.5" fill="var(--lime)" opacity=".5"/>
+          <!-- center circle hub -->
+          <circle cx="14" cy="14" r="3" fill="var(--bg)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+        </svg>
+      </div>
       <div class="card-name">Simon Says</div>
-      <div class="card-desc">Watch the color sequence and repeat it back. Gets faster and longer every round.</div>
-      <div class="card-link">Play now</div>
+      <div class="card-desc">Watch the flashing sequence, repeat it back. It grows faster and longer every round.</div>
+      <div class="cta">
+        Play now
+        <span class="cta-arrow">
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 6.5L6.5 1.5M6.5 1.5H2.5M6.5 1.5V5.5" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </div>
     </a>
 
-    <a class="card" href="airhockey/index.html" style="--card-color:#00f0ff;">
-      <div class="card-emoji">🏒</div>
+    <!-- 5 · Air Hockey -->
+    <a class="card" href="airhockey/index.html">
+      <div class="icon-wrap">
+        <!-- air hockey table top-down icon -->
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="4" width="24" height="20" rx="3" stroke="var(--coral)" stroke-width="1.5" opacity=".5"/>
+          <!-- center line -->
+          <line x1="14" y1="4" x2="14" y2="24" stroke="var(--coral)" stroke-width="1" stroke-dasharray="2 2" opacity=".5"/>
+          <!-- center circle -->
+          <circle cx="14" cy="14" r="3.5" stroke="var(--coral)" stroke-width="1" opacity=".5"/>
+          <!-- goals -->
+          <path d="M2 11.5 L2 16.5" stroke="var(--coral)" stroke-width="3" stroke-linecap="round"/>
+          <path d="M26 11.5 L26 16.5" stroke="var(--coral)" stroke-width="3" stroke-linecap="round"/>
+          <!-- puck -->
+          <circle cx="14" cy="14" r="2.2" fill="var(--coral)"/>
+          <!-- mallets -->
+          <circle cx="7" cy="14" r="2.5" stroke="var(--coral)" stroke-width="1.5" fill="none"/>
+          <circle cx="21" cy="14" r="2.5" stroke="var(--coral)" stroke-width="1.5" fill="none" opacity=".5"/>
+        </svg>
+      </div>
       <div class="card-name">Air Hockey</div>
-      <div class="card-desc">2-player real-time air hockey. Share a keyboard or create a room and challenge a friend in another tab.</div>
-      <div class="card-link">Play now</div>
+      <div class="card-desc">Real-time 2-player air hockey. Share a keyboard or create a room and challenge a friend online.</div>
+      <div class="cta">
+        Play now
+        <span class="cta-arrow">
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 6.5L6.5 1.5M6.5 1.5H2.5M6.5 1.5V5.5" stroke="var(--coral)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </div>
     </a>
 
-    <a class="card" href="tictactoe/index.html" style="--card-color:#e8ff47;">
-      <div class="card-emoji">✖️</div>
+    <!-- 6 · TicTac -->
+    <a class="card" href="tictactoe/index.html">
+      <div class="icon-wrap">
+        <!-- tic-tac-toe grid icon -->
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- grid lines -->
+          <line x1="10" y1="2" x2="10" y2="26" stroke="#00e8c8" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="18" y1="2" x2="18" y2="26" stroke="#00e8c8" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="2" y1="10" x2="26" y2="10" stroke="#00e8c8" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="2" y1="18" x2="26" y2="18" stroke="#00e8c8" stroke-width="1.5" stroke-linecap="round"/>
+          <!-- X in top-left -->
+          <path d="M4.5 4.5 L8.5 8.5 M8.5 4.5 L4.5 8.5" stroke="#00e8c8" stroke-width="1.5" stroke-linecap="round"/>
+          <!-- O in center -->
+          <circle cx="14" cy="14" r="2.5" stroke="#00e8c8" stroke-width="1.5"/>
+          <!-- X in bottom-right -->
+          <path d="M19.5 19.5 L23.5 23.5 M23.5 19.5 L19.5 23.5" stroke="#00e8c8" stroke-width="1.5" stroke-linecap="round" opacity=".5"/>
+        </svg>
+      </div>
       <div class="card-name">TicTac</div>
-      <div class="card-desc">Multiplayer Tic Tac Toe. Create a room, share your ID, and play against a friend online.</div>
-      <div class="card-link">Play now</div>
+      <div class="card-desc">Online multiplayer Tic Tac Toe. Create a room, share your code, and play against a friend in real-time. No downloads needed.</div>
+      <div class="cta">
+        Play now
+        <span class="cta-arrow">
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 6.5L6.5 1.5M6.5 1.5H2.5M6.5 1.5V5.5" stroke="#00e8c8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </div>
     </a>
 
-    <a class="card" href="connect4/index.html" style="--card-color:#ff6b35;">
-      <div class="card-emoji">🔴</div>
+    <!-- 7 · Connect 4 -->
+    <a class="card" href="connect4/index.html">
+      <div class="icon-wrap">
+        <!-- connect 4 grid with discs icon -->
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- grid frame -->
+          <rect x="2" y="8" width="24" height="18" rx="2.5" stroke="#ff8c40" stroke-width="1.5" opacity=".5"/>
+          <!-- column holes row 1 -->
+          <circle cx="7"  cy="13" r="2" fill="#ff8c40"/>
+          <circle cx="14" cy="13" r="2" fill="#ff8c40" opacity=".4"/>
+          <circle cx="21" cy="13" r="2" stroke="#ff8c40" stroke-width="1" opacity=".4"/>
+          <!-- column holes row 2 -->
+          <circle cx="7"  cy="21" r="2" fill="#ff8c40" opacity=".4"/>
+          <circle cx="14" cy="21" r="2" fill="#ff8c40"/>
+          <circle cx="21" cy="21" r="2" fill="#ff8c40" opacity=".4"/>
+          <!-- drop arrow -->
+          <path d="M14 2 L14 7" stroke="#ff8c40" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M11.5 5 L14 7.5 L16.5 5" stroke="#ff8c40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
       <div class="card-name">Connect 4</div>
-      <div class="card-desc">Drop your discs and connect four in a row. Play locally or challenge a friend peer-to-peer.</div>
-      <div class="card-link">Play now</div>
+      <div class="card-desc">Drop discs and connect four in a row — horizontally, vertically, or diagonally. Play locally against a friend or challenge someone.</div>
+      <div class="cta">
+        Play now
+        <span class="cta-arrow">
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 6.5L6.5 1.5M6.5 1.5H2.5M6.5 1.5V5.5" stroke="#ff8c40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </div>
     </a>
 
   </div>
-</div>
 
+  <footer>
+    <span class="footer-text">© VEEUU GAMES · ALL RIGHTS RESERVED</span>
+    <span class="status">
+      <span class="status-dot"></span>
+      All games online
+    </span>
+  </footer>
+
+</div>
 </body>
 </html>
