@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TicTac — Multiplayer</title>
+  <!-- PeerJS CDN -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet"/>
+
+  <style>
+    /* ─── CSS Variables ─── */
+    :root {
+      --bg:        #0d0d0f;
+      --surface:   #141417;
+      --border:    #2a2a32;
+      --accent:    #e8ff47;
+      --accent2:   #ff4f7a;
+      --x-color:   #e8ff47;
+      --o-color:   #ff4f7a;
+      --text:      #f0f0f0;
+      --muted:     #555566;
+      --win-glow:  rgba(232,255,71,0.35);
+      --radius:    12px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      overflow-x: hidden;
+    }
+
+    /* ─── Background grain ─── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ─── Layout wrapper ─── */
+    .app {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 460px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* ─── Header ─── */
+    header {
+      text-align: center;
+    }
+    header h1 {
+      font-size: clamp(2rem, 8vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1;
+    }
+    header h1 span.x { color: var(--x-color); }
+    header h1 span.o { color: var(--o-color); }
+    header p {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 4px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* ─── Connection Panel ─── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .panel-title {
+      font-size: 0.65rem;
+      font-family: 'Space Mono', monospace;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* Status badge */
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background 0.4s;
+      flex-shrink: 0;
+    }
+    .dot.waiting { background: #f59e0b; box-shadow: 0 0 8px #f59e0b88; }
+    .dot.connected { background: #22c55e; box-shadow: 0 0 8px #22c55e88; }
+    .dot.error { background: var(--accent2); }
+    #status-text {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text);
+    }
+
+    /* Input */
+    .input-row { display: flex; gap: 0.5rem; }
+    input[type="text"] {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.6rem 0.85rem;
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus { border-color: var(--accent); }
+    input[type="text"]::placeholder { color: var(--muted); }
+
+    /* Buttons */
+    .btn {
+      padding: 0.6rem 1.1rem;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      white-space: nowrap;
+    }
+    .btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+    .btn:active:not(:disabled) { transform: translateY(0); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .btn-accent {
+      background: var(--accent);
+      color: #0d0d0f;
+      box-shadow: 0 0 0 0 var(--accent);
+    }
+    .btn-accent:hover:not(:disabled) { box-shadow: 0 0 18px var(--accent)66; }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-outline:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+
+    .btn-sm { padding: 0.45rem 0.8rem; font-size: 0.72rem; }
+
+    /* My ID display */
+    .id-box {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.5rem 0.85rem;
+    }
+    .id-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    #my-id {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--accent);
+      flex: 1;
+      word-break: break-all;
+    }
+
+    /* Player role badge */
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.35rem 0.7rem;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.72rem;
+    }
+    .role-badge .symbol { font-weight: 700; font-size: 0.9rem; }
+    .role-badge .symbol.x { color: var(--x-color); }
+    .role-badge .symbol.o { color: var(--o-color); }
+
+    /* ─── Turn Banner ─── */
+    .turn-banner {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      min-height: 56px;
+    }
+    #turn-text {
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+    .turn-symbol {
+      font-family: 'Space Mono', monospace;
+      font-size: 1.4rem;
+      font-weight: 700;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: color 0.3s, background 0.3s;
+    }
+    .turn-symbol.x { color: var(--x-color); background: #e8ff4715; }
+    .turn-symbol.o { color: var(--o-color); background: #ff4f7a15; }
+
+    /* ─── Board ─── */
+    .board-wrap {
+      position: relative;
+    }
+    .board-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(13,13,15,0.7);
+      backdrop-filter: blur(3px);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-family: 'Space Mono', monospace;
+      color: var(--muted);
+      letter-spacing: 1px;
+      z-index: 10;
+      transition: opacity 0.3s;
+    }
+    .board-overlay.hidden { opacity: 0; pointer-events: none; }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px;
+    }
+
+    .cell {
+      aspect-ratio: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Mono', monospace;
+      font-size: clamp(2rem, 10vw, 3.5rem);
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+    }
+    .cell:hover:not(.taken):not(.disabled) {
+      background: #1c1c22;
+      border-color: var(--accent);
+      transform: scale(1.03);
+    }
+    .cell.taken { cursor: default; }
+    .cell.disabled { cursor: not-allowed; }
+
+    /* Symbol colours */
+    .cell[data-val="X"] { color: var(--x-color); }
+    .cell[data-val="O"] { color: var(--o-color); }
+
+    /* Pop-in animation */
+    @keyframes popIn {
+      0%   { transform: scale(0.4); opacity: 0; }
+      70%  { transform: scale(1.12); }
+      100% { transform: scale(1);   opacity: 1; }
+    }
+    .cell .symbol-inner {
+      display: inline-block;
+      animation: popIn 0.25s cubic-bezier(.34,1.56,.64,1) both;
+    }
+
+    /* Winning cells */
+    .cell.win {
+      background: #e8ff4712;
+      border-color: var(--accent);
+      box-shadow: inset 0 0 18px var(--win-glow);
+    }
+    .cell.win[data-val="O"] {
+      background: #ff4f7a12;
+      border-color: var(--accent2);
+      box-shadow: inset 0 0 18px rgba(255,79,122,0.25);
+    }
+
+    @keyframes winPulse {
+      0%,100% { box-shadow: inset 0 0 18px var(--win-glow); }
+      50%      { box-shadow: inset 0 0 32px var(--win-glow); }
+    }
+    .cell.win { animation: winPulse 1.2s ease-in-out infinite; }
+
+    /* ─── Footer buttons ─── */
+    .footer-row {
+      display: flex;
+      gap: 0.6rem;
+    }
+    .footer-row .btn { flex: 1; padding: 0.75rem; }
+
+    /* ─── Toast ─── */
+    #toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--accent);
+      color: #0d0d0f;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.6rem 1.2rem;
+      border-radius: 99px;
+      opacity: 0;
+      transition: transform 0.35s cubic-bezier(.34,1.56,.64,1), opacity 0.3s;
+      z-index: 100;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 360px) {
+      .btn { font-size: 0.7rem; padding: 0.55rem 0.7rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Toast notification -->
+<div id="toast"></div>
+
+<div class="app">
+
+  <!-- Header -->
+  <header>
+    <h1><span class="x">X</span> vs <span class="o">O</span></h1>
+    <p>Peer-to-Peer Multiplayer</p>
+  </header>
+
+  <!-- Connection Panel -->
+  <div class="panel" id="conn-panel">
+    <div class="panel-title">Connection</div>
+
+    <!-- Status row -->
+    <div class="status-row">
+      <div class="dot" id="dot"></div>
+      <span id="status-text">Initialising…</span>
+    </div>
+
+    <!-- My Peer ID -->
+    <div class="id-box">
+      <span class="id-label">MY ID</span>
+      <span id="my-id">—</span>
+      <button class="btn btn-outline btn-sm" id="copy-btn" title="Copy ID" disabled>Copy</button>
+    </div>
+
+    <!-- Create / Join -->
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+      <button class="btn btn-accent" id="create-btn" disabled>Create Room</button>
+      <span style="display:flex;align-items:center;color:var(--muted);font-size:0.75rem;">or</span>
+      <div class="input-row" style="flex:1;min-width:180px;">
+        <input type="text" id="peer-id-input" placeholder="Friend's ID" />
+        <button class="btn btn-outline" id="join-btn" disabled>Join</button>
+      </div>
+    </div>
+
+    <!-- Role indicator (hidden until connected) -->
+    <div id="role-row" style="display:none;" class="status-row">
+      <span style="font-size:0.72rem;color:var(--muted);font-family:'Space Mono',monospace;">You are</span>
+      <div class="role-badge" id="role-badge">
+        <span class="symbol" id="role-symbol">—</span>
+        <span id="role-label"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Turn Banner -->
+  <div class="turn-banner">
+    <span id="turn-text" style="color:var(--muted);">Connect to start</span>
+    <div class="turn-symbol" id="turn-sym" style="display:none;"></div>
+  </div>
+
+  <!-- Board -->
+  <div class="board-wrap">
+    <div class="board-overlay" id="board-overlay">Waiting for opponent…</div>
+    <div class="board" id="board">
+      <!-- Cells injected by JS -->
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-row">
+    <button class="btn btn-outline" id="reset-btn" disabled>↺ Restart</button>
+    <button class="btn btn-outline" id="disconnect-btn" disabled>⊠ Disconnect</button>
+  </div>
+
+</div>
+
+<script>
+/* =========================================================
+   TicTac — Peer-to-Peer Multiplayer Tic Tac Toe
+   Uses PeerJS for WebRTC data connections.
+   ========================================================= */
+
+// ── Constants ─────────────────────────────────────────────
+const WIN_LINES = [
+  [0,1,2],[3,4,5],[6,7,8],   // rows
+  [0,3,6],[1,4,7],[2,5,8],   // cols
+  [0,4,8],[2,4,6]            // diagonals
+];
+
+// ── State ──────────────────────────────────────────────────
+let peer       = null;   // My PeerJS instance
+let conn       = null;   // Active DataConnection
+let myRole     = null;   // 'X' or 'O'
+let board      = Array(9).fill(null);   // null | 'X' | 'O'
+let currentTurn = 'X';  // X always starts
+let gameOver   = false;
+let connected  = false;
+
+// ── DOM refs ───────────────────────────────────────────────
+const dot         = document.getElementById('dot');
+const statusText  = document.getElementById('status-text');
+const myIdEl      = document.getElementById('my-id');
+const copyBtn     = document.getElementById('copy-btn');
+const createBtn   = document.getElementById('create-btn');
+const joinBtn     = document.getElementById('join-btn');
+const peerIdInput = document.getElementById('peer-id-input');
+const roleRow     = document.getElementById('role-row');
+const roleSymbol  = document.getElementById('role-symbol');
+const roleLabel   = document.getElementById('role-label');
+const turnText    = document.getElementById('turn-text');
+const turnSym     = document.getElementById('turn-sym');
+const boardEl     = document.getElementById('board');
+const boardOverlay= document.getElementById('board-overlay');
+const resetBtn    = document.getElementById('reset-btn');
+const disconnectBtn=document.getElementById('disconnect-btn');
+
+// ── Build Board UI ─────────────────────────────────────────
+function buildBoard() {
+  boardEl.innerHTML = '';
+  for (let i = 0; i < 9; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.dataset.index = i;
+    cell.addEventListener('click', () => handleCellClick(i));
+    boardEl.appendChild(cell);
+  }
+}
+buildBoard();
+
+// ── Initialise PeerJS ──────────────────────────────────────
+function initPeer() {
+  setStatus('waiting', 'Connecting to server…');
+
+  peer = new Peer({ debug: 0 });
+
+  peer.on('open', (id) => {
+    myIdEl.textContent = id;
+    copyBtn.disabled   = false;
+    createBtn.disabled = false;
+    joinBtn.disabled   = false;
+    setStatus('waiting', 'Ready — create or join a room');
+  });
+
+  peer.on('error', (err) => {
+    setStatus('error', 'Error: ' + err.type);
+    showToast('PeerJS error: ' + err.type);
+  });
+
+  // Host receives incoming connection here
+  peer.on('connection', (incoming) => {
+    if (conn) { incoming.close(); return; }  // Already have a connection
+    conn = incoming;
+    myRole = 'X';  // Host is always X
+    setupConnection();
+    showRoleBadge();
+    setStatus('connected', 'Opponent connected!');
+    showToast('Opponent joined ✓');
+  });
+}
+
+// ── Create Room (host) ─────────────────────────────────────
+createBtn.addEventListener('click', () => {
+  createBtn.disabled = true;
+  joinBtn.disabled   = true;
+  setStatus('waiting', 'Waiting for opponent to join…');
+  showToast('Share your ID with a friend');
+  // Connection arrives via peer.on('connection') above
+});
+
+// ── Join Room (guest) ──────────────────────────────────────
+joinBtn.addEventListener('click', () => {
+  const targetId = peerIdInput.value.trim();
+  if (!targetId) { showToast('Enter a Peer ID first'); return; }
+  if (targetId === peer.id) { showToast('Cannot connect to yourself'); return; }
+
+  createBtn.disabled = true;
+  joinBtn.disabled   = true;
+  setStatus('waiting', 'Connecting to host…');
+
+  conn   = peer.connect(targetId, { reliable: true });
+  myRole = 'O';  // Guest is always O
+  setupConnection();
+  showRoleBadge();
+});
+
+// ── Wire up DataConnection events ─────────────────────────
+function setupConnection() {
+  conn.on('open', () => {
+    connected = true;
+    setStatus('connected', 'Connected — game on!');
+    disconnectBtn.disabled = false;
+    resetBtn.disabled      = false;
+    updateBoardOverlay();
+    updateTurnBanner();
+  });
+
+  conn.on('data', (data) => {
+    handleIncomingData(data);
+  });
+
+  conn.on('close', () => {
+    handleDisconnect('Opponent disconnected');
+  });
+
+  conn.on('error', (err) => {
+    handleDisconnect('Connection error');
+  });
+}
+
+// ── Incoming data handler ──────────────────────────────────
+function handleIncomingData(data) {
+  if (data.type === 'move') {
+    applyMove(data.index, data.player, false);
+  } else if (data.type === 'reset') {
+    resetGame(false);
+  }
+}
+
+// ── Cell click ─────────────────────────────────────────────
+function handleCellClick(index) {
+  if (!connected)          return;
+  if (gameOver)            return;
+  if (board[index])        return;  // Cell taken
+  if (currentTurn !== myRole) return; // Not my turn
+
+  applyMove(index, myRole, true);
+}
+
+// ── Apply a move (local or remote) ────────────────────────
+function applyMove(index, player, sendToOpponent) {
+  if (board[index] || gameOver) return;
+
+  // Update state
+  board[index] = player;
+  currentTurn  = (player === 'X') ? 'O' : 'X';
+
+  // Update UI
+  renderCell(index, player);
+
+  // Send to opponent if it was my move
+  if (sendToOpponent && conn && conn.open) {
+    conn.send({ type: 'move', index, player });
+  }
+
+  // Check end conditions
+  const winLine = checkWin();
+  if (winLine) {
+    endGame('win', winLine, player);
+  } else if (board.every(Boolean)) {
+    endGame('draw', null, null);
+  } else {
+    updateTurnBanner();
+  }
+}
+
+// ── Render a single cell ───────────────────────────────────
+function renderCell(index, value) {
+  const cell = boardEl.children[index];
+  cell.dataset.val = value;
+  cell.classList.add('taken');
+  cell.innerHTML = `<span class="symbol-inner">${value}</span>`;
+}
+
+// ── Win detection ──────────────────────────────────────────
+function checkWin() {
+  for (const line of WIN_LINES) {
+    const [a, b, c] = line;
+    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+      return line;
+    }
+  }
+  return null;
+}
+
+// ── End game ───────────────────────────────────────────────
+function endGame(result, winLine, winner) {
+  gameOver = true;
+  turnSym.style.display = 'none';
+
+  if (result === 'win') {
+    // Highlight winning cells
+    winLine.forEach(i => boardEl.children[i].classList.add('win'));
+
+    if (winner === myRole) {
+      turnText.textContent = '🎉 You win!';
+      turnText.style.color = (myRole === 'X') ? 'var(--x-color)' : 'var(--o-color)';
+      showToast('You win! 🎉');
+    } else {
+      turnText.textContent = '😞 You lose';
+      turnText.style.color = 'var(--muted)';
+      showToast('You lose…');
+    }
+  } else {
+    turnText.textContent = "It's a draw!";
+    turnText.style.color = 'var(--text)';
+    showToast("Draw!");
+  }
+}
+
+// ── Update turn banner ─────────────────────────────────────
+function updateTurnBanner() {
+  if (!connected) return;
+  turnText.style.color = '';
+  turnSym.style.display = 'flex';
+  turnSym.className = 'turn-symbol ' + currentTurn.toLowerCase();
+  turnSym.textContent = currentTurn;
+
+  if (currentTurn === myRole) {
+    turnText.textContent = 'Your turn';
+  } else {
+    turnText.textContent = "Opponent's turn";
+  }
+}
+
+// ── Board overlay (disabled until connected) ───────────────
+function updateBoardOverlay() {
+  if (connected) {
+    boardOverlay.classList.add('hidden');
+  } else {
+    boardOverlay.classList.remove('hidden');
+    boardOverlay.textContent = 'Waiting for opponent…';
+  }
+}
+
+// ── Show role badge ────────────────────────────────────────
+function showRoleBadge() {
+  roleRow.style.display = 'flex';
+  roleSymbol.textContent = myRole;
+  roleSymbol.className = 'symbol ' + myRole.toLowerCase();
+  roleLabel.textContent = myRole === 'X' ? '(Host — moves first)' : '(Guest)';
+}
+
+// ── Reset game ─────────────────────────────────────────────
+resetBtn.addEventListener('click', () => {
+  if (!connected) return;
+  conn.send({ type: 'reset' });
+  resetGame(false);
+});
+
+function resetGame(sendReset) {
+  // sendReset is unused (we always explicitly call conn.send above)
+  board       = Array(9).fill(null);
+  currentTurn = 'X';
+  gameOver    = false;
+
+  buildBoard();
+  updateTurnBanner();
+
+  turnText.style.color = '';
+  turnSym.style.display = 'flex';
+}
+
+// ── Disconnect ─────────────────────────────────────────────
+disconnectBtn.addEventListener('click', () => {
+  if (conn) conn.close();
+  handleDisconnect('You disconnected');
+});
+
+function handleDisconnect(reason) {
+  connected  = false;
+  conn       = null;
+  myRole     = null;
+  gameOver   = false;
+  board      = Array(9).fill(null);
+
+  setStatus('error', reason);
+  showToast(reason);
+
+  turnText.textContent  = 'Connect to start';
+  turnText.style.color  = 'var(--muted)';
+  turnSym.style.display = 'none';
+
+  roleRow.style.display     = 'none';
+  resetBtn.disabled         = true;
+  disconnectBtn.disabled    = true;
+  createBtn.disabled        = false;
+  joinBtn.disabled          = false;
+  peerIdInput.value         = '';
+
+  buildBoard();
+  updateBoardOverlay();
+}
+
+// ── Copy my ID ─────────────────────────────────────────────
+copyBtn.addEventListener('click', () => {
+  navigator.clipboard.writeText(peer.id).then(() => showToast('ID copied!'));
+});
+
+// ── Status helper ──────────────────────────────────────────
+function setStatus(state, msg) {
+  dot.className = 'dot ' + state;
+  statusText.textContent = msg;
+}
+
+// ── Toast helper ───────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// ── Start ──────────────────────────────────────────────────
+initPeer();
+</script>
+</body>
+</html>
