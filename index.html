@@ -136,7 +136,7 @@ h1 span {
   gap: 16px;
 }
 
-/* Card placements — 8 cards */
+/* Card placements — 9 cards */
 .card:nth-child(1) { grid-column: span 7; }
 .card:nth-child(2) { grid-column: span 5; }
 .card:nth-child(3) { grid-column: span 4; }
@@ -146,6 +146,8 @@ h1 span {
 .card:nth-child(7) { grid-column: span 6; }
 /* RPS — full width feature card */
 .card:nth-child(8) { grid-column: span 12; }
+/* Battleship — full width */
+.card:nth-child(9) { grid-column: span 12; }
 
 /* ── CARD BASE ──────────────────────────────────── */
 .card {
@@ -282,7 +284,21 @@ h1 span {
 .card:nth-child(8) .icon-wrap { margin-bottom: 0; flex-shrink: 0; width: 64px; height: 64px; border-radius: 18px; }
 .card:nth-child(8) .cta { margin-top: 14px; }
 
-/* NEW badge */
+/* Battleship wide card extras */
+.card:nth-child(9) {
+  flex-direction: row;
+  align-items: center;
+  gap: 40px;
+  min-height: 160px;
+  padding: 28px 36px;
+}
+.card:nth-child(9) .card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.card:nth-child(9) .card-name { font-size: 38px; margin-bottom: 8px; }
+.card:nth-child(9) .icon-wrap { margin-bottom: 0; flex-shrink: 0; width: 64px; height: 64px; border-radius: 18px; }
 .new-badge {
   display: inline-flex;
   align-items: center;
@@ -310,6 +326,7 @@ h1 span {
 .card:nth-child(6) { --c: #00e8c8; }
 .card:nth-child(7) { --c: #ff8c40; }
 .card:nth-child(8) { --c: var(--pink); }
+.card:nth-child(9) { --c: #4fc3f7; }
 
 /* ── FOOTER ─────────────────────────────────────── */
 footer {
@@ -351,6 +368,8 @@ footer {
   header { padding: 48px 0 36px; }
   .card:nth-child(8) { flex-direction: column; align-items: flex-start; gap: 0; }
   .card:nth-child(8) .icon-wrap { margin-bottom: 20px; }
+  .card:nth-child(9) { flex-direction: column; align-items: flex-start; gap: 0; }
+  .card:nth-child(9) .icon-wrap { margin-bottom: 20px; }
 }
 @media (max-width: 900px) and (min-width: 701px) {
   .card:nth-child(1) { grid-column: span 12; }
@@ -361,6 +380,7 @@ footer {
   .card:nth-child(6) { grid-column: span 4; }
   .card:nth-child(7) { grid-column: span 12; }
   .card:nth-child(8) { grid-column: span 12; }
+  .card:nth-child(9) { grid-column: span 12; }
 }
 </style>
 </head>
@@ -381,7 +401,7 @@ footer {
       <h1>VEEUU<br><span>GAMES</span></h1>
     </div>
     <div class="header-right">
-      <div class="game-count">08</div>
+      <div class="game-count">09</div>
       <div class="game-count-label">games available</div>
     </div>
   </header>
@@ -579,9 +599,38 @@ footer {
       </div>
     </a>
 
+    <!-- 9 · Battleship (NEW) -->
+    <a class="card" href="battleship/index.html">
+      <div class="icon-wrap">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="2" width="13" height="13" rx="1.5" stroke="#4fc3f7" stroke-width="1.5" opacity=".35"/>
+          <line x1="6.5" y1="2" x2="6.5" y2="15" stroke="#4fc3f7" stroke-width="1" opacity=".3"/>
+          <line x1="10.5" y1="2" x2="10.5" y2="15" stroke="#4fc3f7" stroke-width="1" opacity=".3"/>
+          <line x1="2" y1="6.5" x2="15" y2="6.5" stroke="#4fc3f7" stroke-width="1" opacity=".3"/>
+          <line x1="2" y1="10.5" x2="15" y2="10.5" stroke="#4fc3f7" stroke-width="1" opacity=".3"/>
+          <path d="M4 4 L7 7 M7 4 L4 7" stroke="#4fc3f7" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="12" cy="5.5" r="1" fill="#4fc3f7" opacity=".5"/>
+          <rect x="17" y="14" width="13" height="5" rx="1.5" fill="#4fc3f7" opacity=".7"/>
+          <rect x="20" y="11" width="7" height="4" rx="1" fill="#4fc3f7" opacity=".5"/>
+          <rect x="22" y="9" width="3" height="3" rx="0.5" fill="#4fc3f7" opacity=".35"/>
+          <path d="M5 19 L7 22 L4 22 L6 25 L3 24 L5 27" stroke="#4fc3f7" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity=".6"/>
+        </svg>
+      </div>
+      <div class="card-body">
+        <div class="card-name">Battleship</div>
+        <div class="card-desc">Classic naval warfare — place your fleet, then take turns firing at your opponent's grid. Sink all their ships before they sink yours. Online multiplayer via room codes.</div>
+        <div class="cta">
+          Play now
+          <span class="cta-arrow">
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 6.5L6.5 1.5M6.5 1.5H2.5M6.5 1.5V5.5" stroke="#4fc3f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </div>
+      </div>
+    </a>
+
   </div>
 
-  <footer>
+  <footer></footer>
     <span class="footer-text">© VEEUU GAMES </span>
     <span class="status">
       <span class="status-dot"></span>
