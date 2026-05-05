@@ -490,9 +490,10 @@
   .choice-card:active:not(.disabled) { transform: scale(0.97); }
 
   .choice-emoji {
-    font-size: 44px;
     display: block;
-    margin-bottom: 10px;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 10px;
     transition: transform .2s;
   }
   .choice-card:hover:not(.disabled) .choice-emoji { transform: scale(1.15); }
@@ -749,15 +750,73 @@
     <div class="choices-label">— CHOOSE YOUR WEAPON —</div>
     <div class="choices-grid">
       <div class="choice-card" data-choice="rock"     onclick="selectChoice('rock')">
-        <span class="choice-emoji">🪨</span>
+        <span class="choice-emoji">
+          <!-- Rock: clenched fist -->
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- palm/base -->
+            <rect x="14" y="34" width="36" height="20" rx="8" fill="#ff6b35"/>
+            <!-- index finger -->
+            <rect x="14" y="18" width="10" height="20" rx="5" fill="#ff6b35"/>
+            <!-- middle finger -->
+            <rect x="26" y="15" width="10" height="22" rx="5" fill="#ff6b35"/>
+            <!-- ring finger -->
+            <rect x="38" y="18" width="9" height="20" rx="5" fill="#ff6b35"/>
+            <!-- pinky -->
+            <rect x="14" y="22" width="8" height="14" rx="4" fill="#e85a25"/>
+            <!-- thumb -->
+            <ellipse cx="11" cy="38" rx="6" ry="9" fill="#ff6b35"/>
+            <!-- knuckle lines -->
+            <line x1="19" y1="34" x2="19" y2="38" stroke="#e85a25" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="31" y1="34" x2="31" y2="38" stroke="#e85a25" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="43" y1="34" x2="43" y2="38" stroke="#e85a25" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </span>
         <span class="choice-name">Rock</span>
       </div>
       <div class="choice-card" data-choice="paper"    onclick="selectChoice('paper')">
-        <span class="choice-emoji">📄</span>
+        <span class="choice-emoji">
+          <!-- Paper: open flat hand -->
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- palm -->
+            <rect x="16" y="36" width="32" height="18" rx="8" fill="#00e5ff"/>
+            <!-- index -->
+            <rect x="16" y="10" width="8" height="30" rx="4" fill="#00e5ff"/>
+            <!-- middle -->
+            <rect x="26" y="8"  width="8" height="32" rx="4" fill="#00e5ff"/>
+            <!-- ring -->
+            <rect x="36" y="10" width="8" height="30" rx="4" fill="#00e5ff"/>
+            <!-- pinky -->
+            <rect x="46" y="14" width="7" height="26" rx="3.5" fill="#00e5ff"/>
+            <!-- thumb -->
+            <ellipse cx="11" cy="40" rx="6" ry="10" fill="#00e5ff"/>
+            <!-- finger dividers -->
+            <line x1="24" y1="36" x2="24" y2="42" stroke="#00b8cc" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="34" y1="36" x2="34" y2="42" stroke="#00b8cc" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="44" y1="36" x2="44" y2="42" stroke="#00b8cc" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </span>
         <span class="choice-name">Paper</span>
       </div>
       <div class="choice-card" data-choice="scissors" onclick="selectChoice('scissors')">
-        <span class="choice-emoji">✂️</span>
+        <span class="choice-emoji">
+          <!-- Scissors: index + middle extended, rest curled -->
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- palm -->
+            <rect x="16" y="38" width="32" height="18" rx="8" fill="#c77dff"/>
+            <!-- index finger extended -->
+            <rect x="16" y="10" width="8" height="32" rx="4" fill="#c77dff"/>
+            <!-- middle finger extended -->
+            <rect x="26" y="10" width="8" height="32" rx="4" fill="#c77dff"/>
+            <!-- ring curled (short) -->
+            <rect x="36" y="30" width="8" height="12" rx="4" fill="#c77dff"/>
+            <!-- pinky curled (short) -->
+            <rect x="46" y="32" width="7" height="10" rx="3.5" fill="#c77dff"/>
+            <!-- thumb -->
+            <ellipse cx="11" cy="42" rx="6" ry="9" fill="#c77dff"/>
+            <!-- gap between index & middle -->
+            <line x1="24" y1="38" x2="24" y2="44" stroke="#a050e0" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </span>
         <span class="choice-name">Scissors</span>
       </div>
     </div>
@@ -801,7 +860,41 @@ const state = {
   history: [],
 };
 
-const EMOJIS = { rock: '🪨', paper: '📄', scissors: '✂️' };
+const EMOJIS = { rock: '✊', paper: '🖐️', scissors: '✌️' };
+
+const SVGS = {
+  rock: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:60px;height:60px">
+    <rect x="14" y="34" width="36" height="20" rx="8" fill="#ff6b35"/>
+    <rect x="14" y="18" width="10" height="20" rx="5" fill="#ff6b35"/>
+    <rect x="26" y="15" width="10" height="22" rx="5" fill="#ff6b35"/>
+    <rect x="38" y="18" width="9" height="20" rx="5" fill="#ff6b35"/>
+    <rect x="14" y="22" width="8" height="14" rx="4" fill="#e85a25"/>
+    <ellipse cx="11" cy="38" rx="6" ry="9" fill="#ff6b35"/>
+    <line x1="19" y1="34" x2="19" y2="38" stroke="#e85a25" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="31" y1="34" x2="31" y2="38" stroke="#e85a25" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="43" y1="34" x2="43" y2="38" stroke="#e85a25" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>`,
+  paper: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:60px;height:60px">
+    <rect x="16" y="36" width="32" height="18" rx="8" fill="#00e5ff"/>
+    <rect x="16" y="10" width="8" height="30" rx="4" fill="#00e5ff"/>
+    <rect x="26" y="8"  width="8" height="32" rx="4" fill="#00e5ff"/>
+    <rect x="36" y="10" width="8" height="30" rx="4" fill="#00e5ff"/>
+    <rect x="46" y="14" width="7" height="26" rx="3.5" fill="#00e5ff"/>
+    <ellipse cx="11" cy="40" rx="6" ry="10" fill="#00e5ff"/>
+    <line x1="24" y1="36" x2="24" y2="42" stroke="#00b8cc" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="34" y1="36" x2="34" y2="42" stroke="#00b8cc" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="44" y1="36" x2="44" y2="42" stroke="#00b8cc" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>`,
+  scissors: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:60px;height:60px">
+    <rect x="16" y="38" width="32" height="18" rx="8" fill="#c77dff"/>
+    <rect x="16" y="10" width="8" height="32" rx="4" fill="#c77dff"/>
+    <rect x="26" y="10" width="8" height="32" rx="4" fill="#c77dff"/>
+    <rect x="36" y="30" width="8" height="12" rx="4" fill="#c77dff"/>
+    <rect x="46" y="32" width="7" height="10" rx="3.5" fill="#c77dff"/>
+    <ellipse cx="11" cy="42" rx="6" ry="9" fill="#c77dff"/>
+    <line x1="24" y1="38" x2="24" y2="44" stroke="#a050e0" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>`
+};
 
 /* ═══════════════════════════════════════════════════════
    DOM REFS
@@ -936,7 +1029,7 @@ function handleData(data) {
       break;
     case 'choice':
       state.oppChoice = data.choice;
-      $('battle-opp-emoji').textContent = '✅'; // still hidden via blur
+      $('battle-opp-emoji').innerHTML = '✅'; // still hidden via blur
       $('battle-opp-emoji').classList.add('hidden-choice');
       $('battle-opp-name').textContent = '';
       checkBothChosen();
@@ -977,7 +1070,7 @@ function selectChoice(choice) {
   document.querySelector(`[data-choice="${choice}"]`).classList.remove('disabled');
 
   // Show my choice in battle area
-  $('battle-you-emoji').textContent = EMOJIS[choice];
+  $('battle-you-emoji').innerHTML = SVGS[choice];
   $('battle-you-emoji').classList.remove('hidden-choice');
   $('battle-you-emoji').classList.add('reveal');
   $('battle-you-name').textContent = choice.toUpperCase();
@@ -1041,7 +1134,7 @@ function revealResult() {
 
   // Reveal opponent choice
   const oppEmoji = $('battle-opp-emoji');
-  oppEmoji.textContent = EMOJIS[opp];
+  oppEmoji.innerHTML = SVGS[opp];
   oppEmoji.classList.remove('hidden-choice');
   oppEmoji.classList.add('reveal');
   $('battle-opp-name').textContent = opp.toUpperCase();
@@ -1117,10 +1210,10 @@ function resetRound(initial) {
   state.roundActive = true;
 
   // Reset battle area
-  $('battle-you-emoji').textContent = '🤔';
+  $('battle-you-emoji').innerHTML = '🤔';
   $('battle-you-emoji').classList.remove('hidden-choice', 'reveal');
   $('battle-you-name').textContent = '';
-  $('battle-opp-emoji').textContent = '❓';
+  $('battle-opp-emoji').innerHTML = '❓';
   $('battle-opp-emoji').classList.add('hidden-choice');
   $('battle-opp-emoji').classList.remove('reveal');
   $('battle-opp-name').textContent = '';
@@ -1188,7 +1281,12 @@ function addHistory(round, me, opp, outcome) {
   item.className = 'history-item';
   item.innerHTML = `
     <span class="history-round">R${round}</span>
-    <span class="history-choices">${EMOJIS[me]} vs ${EMOJIS[opp]}  <span style="color:var(--muted);font-size:10px;">${me} vs ${opp}</span></span>
+    <span class="history-choices" style="display:flex;align-items:center;gap:4px;">
+      <span style="display:inline-flex;width:24px;height:24px;">${SVGS[me].replace('width:60px;height:60px', 'width:24px;height:24px')}</span>
+      <span style="color:var(--muted)">vs</span>
+      <span style="display:inline-flex;width:24px;height:24px;">${SVGS[opp].replace('width:60px;height:60px', 'width:24px;height:24px')}</span>
+      <span style="color:var(--muted);font-size:10px;">${me} vs ${opp}</span>
+    </span>
     <span class="history-result ${outcome}">${outcome.toUpperCase()}</span>
   `;
   list.insertBefore(item, list.firstChild);
