@@ -17,6 +17,7 @@
   --coral: #f05060;
   --lime: #70e080;
   --violet: #a060f0;
+  --pink: #ff5fad;
   --text: #e8e6f8;
   --muted: #5a587a;
   --border: rgba(255,255,255,0.06);
@@ -30,7 +31,6 @@ body {
   overflow-x: hidden;
 }
 
-/* Noise grain overlay */
 body::after {
   content: '';
   position: fixed;
@@ -41,7 +41,6 @@ body::after {
   z-index: 100;
 }
 
-/* Ambient lights */
 .amb {
   position: fixed;
   border-radius: 50%;
@@ -113,9 +112,7 @@ h1 span {
   background-clip: text;
 }
 
-.header-right {
-  text-align: right;
-}
+.header-right { text-align: right; }
 .game-count {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 80px;
@@ -139,7 +136,7 @@ h1 span {
   gap: 16px;
 }
 
-/* Card placements */
+/* Card placements — 8 cards */
 .card:nth-child(1) { grid-column: span 7; }
 .card:nth-child(2) { grid-column: span 5; }
 .card:nth-child(3) { grid-column: span 4; }
@@ -147,6 +144,8 @@ h1 span {
 .card:nth-child(5) { grid-column: span 4; }
 .card:nth-child(6) { grid-column: span 6; }
 .card:nth-child(7) { grid-column: span 6; }
+/* RPS — full width feature card */
+.card:nth-child(8) { grid-column: span 12; }
 
 /* ── CARD BASE ──────────────────────────────────── */
 .card {
@@ -165,7 +164,6 @@ h1 span {
   min-height: 220px;
 }
 
-/* Corner accent stripe */
 .card::before {
   content: '';
   position: absolute;
@@ -176,7 +174,6 @@ h1 span {
   transition: opacity 0.3s;
 }
 
-/* Icon glow backdrop */
 .card::after {
   content: '';
   position: absolute;
@@ -196,7 +193,7 @@ h1 span {
   box-shadow: 0 24px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
 }
 .card:hover::before { opacity: 1; }
-.card:hover::after { opacity: 0.12; }
+.card:hover::after  { opacity: 0.12; }
 
 /* ── ICON ───────────────────────────────────────── */
 .icon-wrap {
@@ -268,6 +265,42 @@ h1 span {
 .card:nth-child(1) .card-name { font-size: 42px; }
 .card:nth-child(1) .card-desc { max-width: 380px; }
 
+/* RPS wide card extras */
+.card:nth-child(8) {
+  flex-direction: row;
+  align-items: center;
+  gap: 40px;
+  min-height: 160px;
+  padding: 28px 36px;
+}
+.card:nth-child(8) .card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.card:nth-child(8) .card-name { font-size: 38px; margin-bottom: 8px; }
+.card:nth-child(8) .icon-wrap { margin-bottom: 0; flex-shrink: 0; width: 64px; height: 64px; border-radius: 18px; }
+.card:nth-child(8) .cta { margin-top: 14px; }
+
+/* NEW badge */
+.new-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--pink);
+  border: 1px solid var(--pink);
+  border-radius: 20px;
+  padding: 2px 9px;
+  margin-left: 12px;
+  opacity: 0.85;
+  vertical-align: middle;
+  position: relative;
+  top: -2px;
+}
+
 /* ── CARD COLORS ────────────────────────────────── */
 .card:nth-child(1) { --c: var(--lime); }
 .card:nth-child(2) { --c: var(--violet); }
@@ -276,6 +309,7 @@ h1 span {
 .card:nth-child(5) { --c: var(--coral); }
 .card:nth-child(6) { --c: #00e8c8; }
 .card:nth-child(7) { --c: #ff8c40; }
+.card:nth-child(8) { --c: var(--pink); }
 
 /* ── FOOTER ─────────────────────────────────────── */
 footer {
@@ -315,6 +349,8 @@ footer {
   .card:nth-child(n) { grid-column: span 12; }
   .game-count { display: none; }
   header { padding: 48px 0 36px; }
+  .card:nth-child(8) { flex-direction: column; align-items: flex-start; gap: 0; }
+  .card:nth-child(8) .icon-wrap { margin-bottom: 20px; }
 }
 @media (max-width: 900px) and (min-width: 701px) {
   .card:nth-child(1) { grid-column: span 12; }
@@ -324,6 +360,7 @@ footer {
   .card:nth-child(5) { grid-column: span 4; }
   .card:nth-child(6) { grid-column: span 4; }
   .card:nth-child(7) { grid-column: span 12; }
+  .card:nth-child(8) { grid-column: span 12; }
 }
 </style>
 </head>
@@ -344,7 +381,7 @@ footer {
       <h1>VEEUU<br><span>GAMES</span></h1>
     </div>
     <div class="header-right">
-      <div class="game-count">07</div>
+      <div class="game-count">08</div>
       <div class="game-count-label">games available</div>
     </div>
   </header>
@@ -354,14 +391,11 @@ footer {
     <!-- 1 · Face Puzzle -->
     <a class="card" href="sliding-puzzle/index.html">
       <div class="icon-wrap">
-        <!-- sliding grid icon -->
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="2" y="2" width="11" height="11" rx="2.5" stroke="var(--lime)" stroke-width="1.5"/>
           <rect x="15" y="2" width="11" height="11" rx="2.5" stroke="var(--lime)" stroke-width="1.5" opacity=".45"/>
           <rect x="2" y="15" width="11" height="11" rx="2.5" stroke="var(--lime)" stroke-width="1.5" opacity=".45"/>
-          <!-- missing piece indicator -->
           <rect x="16.5" y="16.5" width="8" height="8" rx="1.5" fill="var(--lime)" opacity=".15" stroke="var(--lime)" stroke-width="1" stroke-dasharray="2 2"/>
-          <!-- arrow suggesting movement -->
           <path d="M22 14.5 L22 16" stroke="var(--lime)" stroke-width="1.5" stroke-linecap="round"/>
           <path d="M14.5 22 L16 22" stroke="var(--lime)" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
@@ -379,11 +413,9 @@ footer {
     <!-- 2 · Memory Flip -->
     <a class="card" href="memory-card/memory.html">
       <div class="icon-wrap">
-        <!-- card flip / two cards icon -->
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="2" y="5" width="14" height="19" rx="2.5" stroke="var(--violet)" stroke-width="1.5" opacity=".4"/>
           <rect x="12" y="4" width="14" height="19" rx="2.5" fill="var(--surface2)" stroke="var(--violet)" stroke-width="1.5"/>
-          <!-- question mark on front card -->
           <path d="M19 10.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5c0 .65-.4 1.2-1 1.4L21 13" stroke="var(--violet)" stroke-width="1.5" stroke-linecap="round"/>
           <circle cx="21" cy="15" r=".75" fill="var(--violet)"/>
         </svg>
@@ -401,13 +433,11 @@ footer {
     <!-- 3 · Number Guess -->
     <a class="card" href="number-guess/number.html">
       <div class="icon-wrap">
-        <!-- bullseye target icon -->
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="14" cy="14" r="11.5" stroke="var(--ice)" stroke-width="1.5" opacity=".3"/>
           <circle cx="14" cy="14" r="7.5" stroke="var(--ice)" stroke-width="1.5" opacity=".55"/>
           <circle cx="14" cy="14" r="3.5" stroke="var(--ice)" stroke-width="1.5"/>
           <circle cx="14" cy="14" r="1.5" fill="var(--ice)"/>
-          <!-- small crosshair lines -->
           <line x1="14" y1="1" x2="14" y2="5" stroke="var(--ice)" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
           <line x1="14" y1="23" x2="14" y2="27" stroke="var(--ice)" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
           <line x1="1" y1="14" x2="5" y2="14" stroke="var(--ice)" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
@@ -427,14 +457,11 @@ footer {
     <!-- 4 · Simon Says -->
     <a class="card" href="simon-says/index.html">
       <div class="icon-wrap">
-        <!-- four colored quadrant pads icon -->
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <!-- four quadrant buttons -->
           <rect x="2" y="2" width="11" height="11" rx="2.5" fill="var(--gold)" opacity=".8"/>
           <rect x="15" y="2" width="11" height="11" rx="2.5" fill="var(--coral)" opacity=".5"/>
           <rect x="2" y="15" width="11" height="11" rx="2.5" fill="var(--ice)" opacity=".5"/>
           <rect x="15" y="15" width="11" height="11" rx="2.5" fill="var(--lime)" opacity=".5"/>
-          <!-- center circle hub -->
           <circle cx="14" cy="14" r="3" fill="var(--bg)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
         </svg>
       </div>
@@ -451,19 +478,13 @@ footer {
     <!-- 5 · Air Hockey -->
     <a class="card" href="airhockey/index.html">
       <div class="icon-wrap">
-        <!-- air hockey table top-down icon -->
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="2" y="4" width="24" height="20" rx="3" stroke="var(--coral)" stroke-width="1.5" opacity=".5"/>
-          <!-- center line -->
           <line x1="14" y1="4" x2="14" y2="24" stroke="var(--coral)" stroke-width="1" stroke-dasharray="2 2" opacity=".5"/>
-          <!-- center circle -->
           <circle cx="14" cy="14" r="3.5" stroke="var(--coral)" stroke-width="1" opacity=".5"/>
-          <!-- goals -->
           <path d="M2 11.5 L2 16.5" stroke="var(--coral)" stroke-width="3" stroke-linecap="round"/>
           <path d="M26 11.5 L26 16.5" stroke="var(--coral)" stroke-width="3" stroke-linecap="round"/>
-          <!-- puck -->
           <circle cx="14" cy="14" r="2.2" fill="var(--coral)"/>
-          <!-- mallets -->
           <circle cx="7" cy="14" r="2.5" stroke="var(--coral)" stroke-width="1.5" fill="none"/>
           <circle cx="21" cy="14" r="2.5" stroke="var(--coral)" stroke-width="1.5" fill="none" opacity=".5"/>
         </svg>
@@ -481,18 +502,13 @@ footer {
     <!-- 6 · TicTac -->
     <a class="card" href="tictactoe/index.html">
       <div class="icon-wrap">
-        <!-- tic-tac-toe grid icon -->
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <!-- grid lines -->
           <line x1="10" y1="2" x2="10" y2="26" stroke="#00e8c8" stroke-width="1.5" stroke-linecap="round"/>
           <line x1="18" y1="2" x2="18" y2="26" stroke="#00e8c8" stroke-width="1.5" stroke-linecap="round"/>
           <line x1="2" y1="10" x2="26" y2="10" stroke="#00e8c8" stroke-width="1.5" stroke-linecap="round"/>
           <line x1="2" y1="18" x2="26" y2="18" stroke="#00e8c8" stroke-width="1.5" stroke-linecap="round"/>
-          <!-- X in top-left -->
           <path d="M4.5 4.5 L8.5 8.5 M8.5 4.5 L4.5 8.5" stroke="#00e8c8" stroke-width="1.5" stroke-linecap="round"/>
-          <!-- O in center -->
           <circle cx="14" cy="14" r="2.5" stroke="#00e8c8" stroke-width="1.5"/>
-          <!-- X in bottom-right -->
           <path d="M19.5 19.5 L23.5 23.5 M23.5 19.5 L19.5 23.5" stroke="#00e8c8" stroke-width="1.5" stroke-linecap="round" opacity=".5"/>
         </svg>
       </div>
@@ -509,19 +525,14 @@ footer {
     <!-- 7 · Connect 4 -->
     <a class="card" href="connect4/index.html">
       <div class="icon-wrap">
-        <!-- connect 4 grid with discs icon -->
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <!-- grid frame -->
           <rect x="2" y="8" width="24" height="18" rx="2.5" stroke="#ff8c40" stroke-width="1.5" opacity=".5"/>
-          <!-- column holes row 1 -->
           <circle cx="7"  cy="13" r="2" fill="#ff8c40"/>
           <circle cx="14" cy="13" r="2" fill="#ff8c40" opacity=".4"/>
           <circle cx="21" cy="13" r="2" stroke="#ff8c40" stroke-width="1" opacity=".4"/>
-          <!-- column holes row 2 -->
           <circle cx="7"  cy="21" r="2" fill="#ff8c40" opacity=".4"/>
           <circle cx="14" cy="21" r="2" fill="#ff8c40"/>
           <circle cx="21" cy="21" r="2" fill="#ff8c40" opacity=".4"/>
-          <!-- drop arrow -->
           <path d="M14 2 L14 7" stroke="#ff8c40" stroke-width="1.5" stroke-linecap="round"/>
           <path d="M11.5 5 L14 7.5 L16.5 5" stroke="#ff8c40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -536,10 +547,42 @@ footer {
       </div>
     </a>
 
+    <!-- 8 · Rock Paper Scissors (NEW) -->
+    <a class="card" href="rockpaperscissor/index.html">
+      <div class="icon-wrap">
+        <!-- RPS: three overlapping hand shape silhouettes -->
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Rock: fist circle -->
+          <circle cx="8" cy="22" r="5" stroke="var(--pink)" stroke-width="1.5" opacity=".5"/>
+          <!-- Paper: open hand rectangle -->
+          <rect x="12" y="6" width="9" height="13" rx="2" stroke="var(--pink)" stroke-width="1.5" opacity=".7"/>
+          <!-- finger lines on paper -->
+          <line x1="15" y1="6" x2="15" y2="3.5" stroke="var(--pink)" stroke-width="1.5" stroke-linecap="round" opacity=".7"/>
+          <line x1="18" y1="6" x2="18" y2="3.5" stroke="var(--pink)" stroke-width="1.5" stroke-linecap="round" opacity=".7"/>
+          <!-- Scissors: two blades -->
+          <path d="M22 10 L29 18" stroke="var(--pink)" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M29 10 L22 18" stroke="var(--pink)" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="25.5" cy="14" r="1.5" fill="var(--pink)" opacity=".6"/>
+        </svg>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          Rock Paper Scissors
+        </div>
+        <div class="card-desc">Real-time multiplayer — create a room, share your ID, and battle a friend. Scoreboard, round history, and emoji bursts on every win.</div>
+        <div class="cta">
+          Play now
+          <span class="cta-arrow">
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 6.5L6.5 1.5M6.5 1.5H2.5M6.5 1.5V5.5" stroke="var(--pink)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </div>
+      </div>
+    </a>
+
   </div>
 
   <footer>
-    <span class="footer-text">© VEEUU GAMES · ALL RIGHTS RESERVED</span>
+    <span class="footer-text">© VEEUU GAMES </span>
     <span class="status">
       <span class="status-dot"></span>
       All games online
