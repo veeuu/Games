@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NAVAL STRIKE — Battleship</title>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #040d1a;
+    --panel: #071428;
+    --border: #0d3060;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --hit: #ff2244;
+    --miss: #1a3a5c;
+    --ship: #2a6496;
+    --ship-placed: #3a8bbf;
+    --empty: #0a1f3a;
+    --grid-line: #0d3060;
+    --text: #c8e8ff;
+    --dim: #4a7aa0;
+    --win: #00ff88;
+    --glow: 0 0 20px rgba(0, 212, 255, 0.4);
+    --glow-red: 0 0 20px rgba(255, 34, 68, 0.6);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Scanline effect */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+
+  /* HEADER */
+  header {
+    text-align: center;
+    margin-bottom: 24px;
+    animation: fadeDown 0.6s ease;
+  }
+
+  .logo {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-shadow: 0 0 30px rgba(0,212,255,0.8), 0 0 60px rgba(0,212,255,0.4);
+    line-height: 1;
+  }
+
+  .logo span {
+    color: var(--accent2);
+    text-shadow: 0 0 30px rgba(255,107,53,0.8);
+  }
+
+  .tagline {
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    color: var(--dim);
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
+
+  /* LOBBY */
+  #lobby {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    max-width: 480px;
+    animation: fadeUp 0.5s ease;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+
+  .panel-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+
+  .btn {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    padding: 12px 24px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .btn:hover::before { opacity: 0.1; }
+  .btn:hover { box-shadow: var(--glow); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+
+  .btn-danger {
+    border-color: var(--hit);
+    color: var(--hit);
+  }
+  .btn-danger:hover { box-shadow: var(--glow-red); }
+  .btn-danger::before { background: var(--hit); }
+
+  .btn-success {
+    border-color: var(--win);
+    color: var(--win);
+  }
+  .btn-success::before { background: var(--win); }
+  .btn-success:hover { box-shadow: 0 0 20px rgba(0,255,136,0.4); }
+
+  .btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  input[type="text"] {
+    flex: 1;
+    background: #040d1a;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    border-radius: 2px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="text"]:focus { border-color: var(--accent); }
+  input[type="text"]::placeholder { color: var(--dim); }
+
+  .id-display {
+    background: #040d1a;
+    border: 1px solid var(--border);
+    padding: 12px 16px;
+    font-size: 1rem;
+    color: var(--win);
+    letter-spacing: 0.1em;
+    border-radius: 2px;
+    word-break: break-all;
+  }
+
+  .copy-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .copy-row .id-display { flex: 1; }
+
+  /* STATUS BAR */
+  #status-bar {
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 16px;
+    animation: fadeDown 0.4s ease;
+  }
+
+  #status-text {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+  }
+
+  #status-text.opponent { color: var(--dim); }
+  #status-text.win { color: var(--win); text-shadow: 0 0 20px var(--win); }
+  #status-text.lose { color: var(--hit); text-shadow: 0 0 20px var(--hit); }
+
+  .ships-info {
+    display: flex;
+    gap: 24px;
+    font-size: 0.7rem;
+    color: var(--dim);
+  }
+
+  .ships-info .count { color: var(--accent2); font-weight: bold; }
+
+  /* GAME AREA */
+  #game-area {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    max-width: 900px;
+    animation: fadeUp 0.4s ease;
+  }
+
+  .boards-row {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .board-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .board-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  .board-label.active { color: var(--accent); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+    background: var(--grid-line);
+    border: 2px solid var(--border);
+    padding: 3px;
+    border-radius: 4px;
+    transition: box-shadow 0.3s;
+  }
+
+  .grid.clickable { box-shadow: 0 0 0 1px var(--accent), var(--glow); }
+
+  .cell {
+    width: clamp(48px, 9vw, 72px);
+    height: clamp(48px, 9vw, 72px);
+    background: var(--empty);
+    border-radius: 2px;
+    cursor: default;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Own grid cells */
+  .own-grid .cell.ship {
+    background: var(--ship-placed);
+    box-shadow: inset 0 0 10px rgba(0,212,255,0.2);
+  }
+
+  .own-grid .cell.ship::after {
+    content: '▣';
+    font-size: 1.4rem;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .own-grid .cell.placing {
+    cursor: crosshair;
+    background: var(--empty);
+  }
+
+  .own-grid .cell.placing:hover {
+    background: rgba(0,212,255,0.15);
+    transform: scale(0.95);
+  }
+
+  /* Opponent grid cells */
+  .opp-grid .cell.clickable-cell {
+    cursor: crosshair;
+  }
+
+  .opp-grid .cell.clickable-cell:hover {
+    background: rgba(0,212,255,0.15);
+    transform: scale(0.95);
+    box-shadow: inset 0 0 10px rgba(0,212,255,0.3);
+  }
+
+  .cell.hit {
+    background: var(--hit) !important;
+    cursor: not-allowed;
+    animation: hitFlash 0.4s ease;
+  }
+
+  .cell.hit::after {
+    content: '✕';
+    font-size: 1.6rem;
+    color: rgba(255,255,255,0.9);
+    font-weight: bold;
+  }
+
+  .cell.miss {
+    background: var(--miss) !important;
+    cursor: not-allowed;
+    animation: missRipple 0.3s ease;
+  }
+
+  .cell.miss::after {
+    content: '·';
+    font-size: 2rem;
+    color: rgba(255,255,255,0.4);
+  }
+
+  .cell.last-move {
+    box-shadow: inset 0 0 0 2px white;
+  }
+
+  /* Own grid hit/miss shows result on own board */
+  .own-grid .cell.hit {
+    background: var(--hit) !important;
+  }
+
+  .own-grid .cell.miss {
+    background: rgba(255,255,255,0.08) !important;
+  }
+
+  /* Setup phase */
+  #setup-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 16px 24px;
+    border-radius: 4px;
+    text-align: center;
+    width: 100%;
+    max-width: 500px;
+    position: relative;
+  }
+
+  #setup-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent2), transparent);
+  }
+
+  .setup-instruction {
+    font-size: 0.8rem;
+    color: var(--dim);
+    margin-bottom: 12px;
+  }
+
+  .setup-instruction strong {
+    color: var(--text);
+  }
+
+  .ship-counter {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 10px 0;
+  }
+
+  .ship-dot {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--ship-placed);
+    border-radius: 2px;
+    transition: background 0.2s;
+  }
+
+  .ship-dot.filled { background: var(--ship-placed); }
+
+  /* OVERLAY (game over) */
+  #overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(4,13,26,0.92);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 24px;
+    animation: fadeIn 0.5s ease;
+  }
+
+  #overlay.show { display: flex; }
+
+  .overlay-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    font-weight: 900;
+    letter-spacing: 0.1em;
+  }
+
+  .overlay-title.win {
+    color: var(--win);
+    text-shadow: 0 0 40px var(--win), 0 0 80px rgba(0,255,136,0.4);
+    animation: pulse 1s ease infinite alternate;
+  }
+
+  .overlay-title.lose {
+    color: var(--hit);
+    text-shadow: 0 0 40px var(--hit), 0 0 80px rgba(255,34,68,0.4);
+  }
+
+  .overlay-sub {
+    color: var(--dim);
+    font-size: 0.85rem;
+    letter-spacing: 0.2em;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeDown { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:none; } }
+  @keyframes fadeUp   { from { opacity:0; transform:translateY(20px);  } to { opacity:1; transform:none; } }
+  @keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
+  @keyframes hitFlash {
+    0%   { background: white; transform: scale(1.1); }
+    50%  { background: var(--hit); transform: scale(1.05); }
+    100% { background: var(--hit); transform: scale(1); }
+  }
+  @keyframes missRipple {
+    0%   { transform: scale(1.05); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes pulse {
+    from { text-shadow: 0 0 40px var(--win), 0 0 80px rgba(0,255,136,0.4); }
+    to   { text-shadow: 0 0 60px var(--win), 0 0 120px rgba(0,255,136,0.6); }
+  }
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+
+  .blink { animation: blink 1s step-end infinite; }
+
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 4px 0;
+  }
+
+  /* Instructions */
+  .instructions {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px 20px;
+    width: 100%;
+    max-width: 480px;
+    font-size: 0.72rem;
+    color: var(--dim);
+    line-height: 2;
+  }
+
+  .instructions h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .instructions span { color: var(--text); }
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot {
+    width: 14px; height: 14px; border-radius: 2px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  /* Notification toast */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--panel);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    padding: 10px 20px;
+    border-radius: 4px;
+    z-index: 200;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: nowrap;
+  }
+
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 600px) {
+    .boards-row { flex-direction: column; align-items: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+  <header>
+    <div class="logo">NAVAL <span>STRIKE</span></div>
+    <div class="tagline">Peer-to-Peer Tactical Combat · 5×5 Grid</div>
+  </header>
+
+  <!-- LOBBY -->
+  <div id="lobby">
+    <div class="panel">
+      <div class="panel-title">◈ Create Room</div>
+      <p style="font-size:0.75rem;color:var(--dim);margin-bottom:14px;">Generate a room ID and share it with your opponent.</p>
+      <button class="btn" id="btn-create" onclick="createRoom()">Initialize Room</button>
+      <div id="room-id-section" style="display:none;margin-top:14px;">
+        <div style="font-size:0.7rem;color:var(--dim);margin-bottom:6px;">ROOM ID (share this):</div>
+        <div class="copy-row">
+          <div class="id-display" id="room-id-display">—</div>
+          <button class="btn" onclick="copyId()" style="white-space:nowrap;padding:12px 14px;">Copy</button>
+        </div>
+        <div style="font-size:0.7rem;color:var(--dim);margin-top:8px;" id="waiting-text">
+          <span class="blink">▶</span> Waiting for opponent to connect…
+        </div>
+      </div>
+    </div>
+
+    <div style="font-size:0.7rem;color:var(--dim);letter-spacing:0.2em;">— OR —</div>
+
+    <div class="panel">
+      <div class="panel-title">◈ Join Room</div>
+      <p style="font-size:0.75rem;color:var(--dim);margin-bottom:14px;">Enter the Room ID your opponent shared.</p>
+      <div class="input-row">
+        <input type="text" id="join-id-input" placeholder="Enter Room ID…" />
+        <button class="btn" id="btn-join" onclick="joinRoom()">Connect</button>
+      </div>
+      <div id="connecting-text" style="display:none;font-size:0.7rem;color:var(--dim);margin-top:8px;">
+        <span class="blink">▶</span> Connecting…
+      </div>
+    </div>
+
+    <div class="instructions">
+      <h3>⌂ How to Play</h3>
+      <div><span>1.</span> Player 1 clicks "Initialize Room" → gets a Room ID</div>
+      <div><span>2.</span> Player 2 enters that ID → clicks "Connect"</div>
+      <div><span>3.</span> Each player places <span>3 ships</span> on their own grid</div>
+      <div><span>4.</span> Click "Ready" → take turns attacking opponent's grid</div>
+      <div><span>5.</span> Sink all 3 enemy ships to win!</div>
+      <div class="legend" style="margin-top:10px;">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--ship-placed)"></div> <span>Your ship</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--hit)"></div> <span>Hit</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--miss)"></div> <span>Miss</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div id="status-bar" style="display:none;">
+    <div id="status-text">Waiting…</div>
+    <div class="ships-info">
+      <div>MY SHIPS: <span class="count" id="my-ships-count">3</span></div>
+      <div>ENEMY: <span class="count" id="enemy-ships-count">3</span></div>
+    </div>
+  </div>
+
+  <!-- GAME AREA -->
+  <div id="game-area">
+    <div class="boards-row">
+      <!-- Own Grid -->
+      <div class="board-section">
+        <div class="board-label" id="own-label">YOUR WATERS</div>
+        <div class="grid own-grid" id="own-grid"></div>
+        <div id="setup-panel">
+          <div class="setup-instruction">
+            Click cells to place your <strong>3 ships</strong>
+          </div>
+          <div class="ship-counter" id="ship-counter">
+            <div class="ship-dot" id="dot-0"></div>
+            <div class="ship-dot" id="dot-1"></div>
+            <div class="ship-dot" id="dot-2"></div>
+          </div>
+          <button class="btn btn-success" id="ready-btn" onclick="sendReady()" disabled>
+            ▶ BATTLE STATIONS
+          </button>
+        </div>
+      </div>
+
+      <!-- Opponent Grid -->
+      <div class="board-section">
+        <div class="board-label" id="opp-label">ENEMY WATERS</div>
+        <div class="grid opp-grid" id="opp-grid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Overlay -->
+<div id="overlay">
+  <div class="overlay-title" id="overlay-title">YOU WIN</div>
+  <div class="overlay-sub" id="overlay-sub">All enemy vessels destroyed.</div>
+  <button class="btn btn-success" onclick="location.reload()">↺ New Mission</button>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────
+const GRID_SIZE = 25;
+const MAX_SHIPS = 3;
+
+let peer = null;
+let conn = null;
+let isHost = false;
+let myShips = new Set();       // indices of my placed ships
+let myHits = new Set();        // enemy attacks that hit me
+let myMisses = new Set();      // enemy attacks that missed me
+let oppHits = new Set();       // my attacks that hit (on opp grid)
+let oppMisses = new Set();     // my attacks that missed
+let myTurn = false;
+let isReady = false;
+let oppReady = false;
+let gameStarted = false;
+let lastOppCell = -1;
+
+// ─── Toast ───────────────────────────────────────────────────────────────
+function showToast(msg, duration = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ─── Grid Init ───────────────────────────────────────────────────────────
+function buildGrid(containerId, isOwn) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  for (let i = 0; i < GRID_SIZE; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.dataset.index = i;
+    if (isOwn) {
+      cell.classList.add('placing');
+      cell.addEventListener('click', () => placeShip(i));
+    } else {
+      cell.addEventListener('click', () => attack(i));
+    }
+    container.appendChild(cell);
+  }
+}
+
+function getOwnCell(i)  { return document.querySelector(`#own-grid .cell[data-index="${i}"]`); }
+function getOppCell(i)  { return document.querySelector(`#opp-grid .cell[data-index="${i}"]`); }
+
+// ─── Ship Placement ───────────────────────────────────────────────────────
+function placeShip(index) {
+  if (isReady || gameStarted) return;
+  const cell = getOwnCell(index);
+  if (myShips.has(index)) {
+    // Toggle off
+    myShips.delete(index);
+    cell.classList.remove('ship');
+  } else if (myShips.size < MAX_SHIPS) {
+    myShips.add(index);
+    cell.classList.add('ship');
+  } else {
+    showToast('Max 3 ships placed. Click a ship to remove it.');
+    return;
+  }
+  updateShipCounter();
+  document.getElementById('ready-btn').disabled = myShips.size < MAX_SHIPS;
+}
+
+function updateShipCounter() {
+  for (let i = 0; i < MAX_SHIPS; i++) {
+    const dot = document.getElementById(`dot-${i}`);
+    dot.classList.toggle('filled', i < myShips.size);
+  }
+}
+
+// ─── PeerJS ───────────────────────────────────────────────────────────────
+function createRoom() {
+  document.getElementById('btn-create').disabled = true;
+  document.getElementById('btn-create').textContent = 'Initializing…';
+  peer = new Peer();
+  peer.on('open', id => {
+    document.getElementById('room-id-display').textContent = id;
+    document.getElementById('room-id-section').style.display = 'block';
+    document.getElementById('btn-create').textContent = 'Room Active';
+    isHost = true;
+    showToast('Room created! Share your ID.');
+  });
+  peer.on('connection', c => {
+    conn = c;
+    setupConnection();
+    document.getElementById('waiting-text').innerHTML = '<span style="color:var(--win)">▶ Opponent connected!</span>';
+    showToast('Opponent connected! Place your ships.');
+    startSetupPhase();
+  });
+  peer.on('error', e => { showToast('Error: ' + e.type); resetLobby(); });
+}
+
+function joinRoom() {
+  const id = document.getElementById('join-id-input').value.trim();
+  if (!id) { showToast('Enter a Room ID first.'); return; }
+  document.getElementById('btn-join').disabled = true;
+  document.getElementById('connecting-text').style.display = 'block';
+  peer = new Peer();
+  peer.on('open', () => {
+    conn = peer.connect(id);
+    setupConnection();
+    conn.on('open', () => {
+      document.getElementById('connecting-text').innerHTML = '<span style="color:var(--win)">▶ Connected!</span>';
+      showToast('Connected! Place your ships.');
+      startSetupPhase();
+    });
+  });
+  peer.on('error', e => { showToast('Connection failed: ' + e.type); resetLobby(); });
+}
+
+function setupConnection() {
+  conn.on('data', handleMessage);
+  conn.on('close', () => {
+    if (!gameStarted) return;
+    showToast('Opponent disconnected.', 5000);
+  });
+  conn.on('error', e => showToast('Connection error.'));
+}
+
+function sendMsg(obj) {
+  if (conn && conn.open) conn.send(obj);
+}
+
+function copyId() {
+  const id = document.getElementById('room-id-display').textContent;
+  navigator.clipboard.writeText(id).then(() => showToast('Room ID copied!'));
+}
+
+function resetLobby() {
+  document.getElementById('btn-create').disabled = false;
+  document.getElementById('btn-create').textContent = 'Initialize Room';
+  document.getElementById('btn-join').disabled = false;
+  document.getElementById('connecting-text').style.display = 'none';
+}
+
+// ─── Phase Transition ─────────────────────────────────────────────────────
+function startSetupPhase() {
+  document.getElementById('lobby').style.display = 'none';
+  document.getElementById('status-bar').style.display = 'flex';
+  document.getElementById('game-area').style.display = 'flex';
+  buildGrid('own-grid', true);
+  buildGrid('opp-grid', false);
+  setStatus('Place your ships, then click BATTLE STATIONS', '');
+}
+
+// ─── Ready ───────────────────────────────────────────────────────────────
+function sendReady() {
+  if (myShips.size < MAX_SHIPS) return;
+  isReady = true;
+  document.getElementById('ready-btn').disabled = true;
+  document.getElementById('ready-btn').textContent = '✓ READY';
+  // Lock own grid
+  document.querySelectorAll('#own-grid .cell').forEach(c => {
+    c.classList.remove('placing');
+    c.style.cursor = 'default';
+  });
+  sendMsg({ type: 'ready' });
+  setStatus('Waiting for opponent…', '');
+  if (oppReady) startGame();
+}
+
+// ─── Message Handler ──────────────────────────────────────────────────────
+function handleMessage(msg) {
+  switch (msg.type) {
+    case 'ready':
+      oppReady = true;
+      showToast('Opponent is ready!');
+      if (isReady) startGame();
+      break;
+
+    case 'attack':
+      handleIncomingAttack(msg.cellIndex);
+      break;
+
+    case 'result':
+      handleAttackResult(msg.cellIndex, msg.hit);
+      break;
+
+    case 'gameOver':
+      endGame(false);
+      break;
+  }
+}
+
+// ─── Game Start ───────────────────────────────────────────────────────────
+function startGame() {
+  gameStarted = true;
+  document.getElementById('setup-panel').style.display = 'none';
+  // Host goes first
+  myTurn = isHost;
+  updateTurnUI();
+}
+
+// ─── Turn UI ──────────────────────────────────────────────────────────────
+function updateTurnUI() {
+  const oppGrid = document.getElementById('opp-grid');
+  if (myTurn) {
+    setStatus('⬡ YOUR TURN — Click enemy grid to fire', 'your-turn');
+    oppGrid.classList.add('clickable');
+    document.querySelectorAll('#opp-grid .cell').forEach(c => {
+      if (!c.classList.contains('hit') && !c.classList.contains('miss'))
+        c.classList.add('clickable-cell');
+    });
+    document.getElementById('opp-label').classList.add('active');
+    document.getElementById('own-label').classList.remove('active');
+  } else {
+    setStatus('⬡ OPPONENT\'S TURN — Brace for impact…', 'opponent');
+    oppGrid.classList.remove('clickable');
+    document.querySelectorAll('#opp-grid .cell').forEach(c => c.classList.remove('clickable-cell'));
+    document.getElementById('opp-label').classList.remove('active');
+    document.getElementById('own-label').classList.add('active');
+  }
+}
+
+// ─── Attack ───────────────────────────────────────────────────────────────
+function attack(index) {
+  if (!gameStarted || !myTurn) return;
+  if (oppHits.has(index) || oppMisses.has(index)) return;
+
+  myTurn = false;
+  updateTurnUI();
+  sendMsg({ type: 'attack', cellIndex: index });
+}
+
+function handleIncomingAttack(index) {
+  const hit = myShips.has(index);
+  // Mark on own grid
+  const cell = getOwnCell(index);
+  if (hit) {
+    cell.classList.add('hit');
+    myHits.add(index);
+    updateMyShipsCount();
+    showToast('💥 Your ship was hit!', 2000);
+  } else {
+    cell.classList.add('miss');
+    myMisses.add(index);
+    showToast('〜 Enemy missed!', 1500);
+  }
+  sendMsg({ type: 'result', cellIndex: index, hit });
+
+  // Check if I lost all ships
+  if (myHits.size >= MAX_SHIPS) {
+    // Opponent wins — tell opponent
+    sendMsg({ type: 'gameOver', winner: 'opponent' });
+    endGame(false);
+    return;
+  }
+
+  // Now it's my turn
+  myTurn = true;
+  updateTurnUI();
+}
+
+function handleAttackResult(index, hit) {
+  // Clear previous last-move highlight
+  if (lastOppCell >= 0) getOppCell(lastOppCell)?.classList.remove('last-move');
+  lastOppCell = index;
+
+  const cell = getOppCell(index);
+  cell.classList.remove('clickable-cell');
+  if (hit) {
+    oppHits.add(index);
+    cell.classList.add('hit', 'last-move');
+    updateEnemyShipsCount();
+    showToast('🎯 Direct hit!', 2000);
+
+    if (oppHits.size >= MAX_SHIPS) {
+      endGame(true);
+      return;
+    }
+  } else {
+    oppMisses.add(index);
+    cell.classList.add('miss', 'last-move');
+    showToast('〜 Missed…', 1500);
+  }
+
+  // Opponent's turn now
+  myTurn = false;
+  updateTurnUI();
+}
+
+// ─── Ship Counts ──────────────────────────────────────────────────────────
+function updateMyShipsCount() {
+  document.getElementById('my-ships-count').textContent = MAX_SHIPS - myHits.size;
+}
+
+function updateEnemyShipsCount() {
+  document.getElementById('enemy-ships-count').textContent = MAX_SHIPS - oppHits.size;
+}
+
+// ─── Game Over ────────────────────────────────────────────────────────────
+function endGame(didWin) {
+  gameStarted = false;
+  document.getElementById('opp-label').classList.remove('active');
+  document.getElementById('own-label').classList.remove('active');
+
+  const overlay = document.getElementById('overlay');
+  const title = document.getElementById('overlay-title');
+  const sub = document.getElementById('overlay-sub');
+
+  if (didWin) {
+    title.textContent = 'VICTORY';
+    title.className = 'overlay-title win';
+    sub.textContent = 'All enemy vessels have been destroyed.';
+    setStatus('VICTORY', 'win');
+  } else {
+    title.textContent = 'DEFEATED';
+    title.className = 'overlay-title lose';
+    sub.textContent = 'Your fleet has been annihilated.';
+    setStatus('DEFEATED', 'lose');
+  }
+
+  overlay.classList.add('show');
+}
+
+// ─── Status ───────────────────────────────────────────────────────────────
+function setStatus(text, cls) {
+  const el = document.getElementById('status-text');
+  el.textContent = text;
+  el.className = cls || '';
+}
+</script>
+</body>
+</html>
