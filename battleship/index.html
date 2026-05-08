@@ -680,7 +680,9 @@
 <div id="overlay">
   <div class="overlay-title" id="overlay-title">YOU WIN</div>
   <div class="overlay-sub" id="overlay-sub">All enemy vessels destroyed.</div>
-  <button class="btn btn-success" onclick="location.reload()">↺ New Mission</button>
+  <button class="btn btn-success" id="btn-rematch" onclick="requestRematch()">⟳ Play Again</button>
+  <div id="rematch-status" style="font-size:0.7rem;letter-spacing:0.2em;color:var(--dim);display:none;">Waiting for opponent…</div>
+  <button class="btn btn-danger" onclick="location.reload()" style="margin-top:4px;">✕ Leave</button>
 </div>
 
 <!-- Toast -->
@@ -704,6 +706,8 @@ let isReady = false;
 let oppReady = false;
 let gameStarted = false;
 let lastOppCell = -1;
+let myRematch = false;
+let oppRematch = false;
 
 // ─── Toast ───────────────────────────────────────────────────────────────
 function showToast(msg, duration = 2500) {
@@ -877,6 +881,12 @@ function handleMessage(msg) {
     case 'gameOver':
       endGame(false);
       break;
+
+    case 'rematch':
+      oppRematch = true;
+      if (myRematch) startRematch();
+      else showToast('Opponent wants to play again!');
+      break;
   }
 }
 
@@ -984,6 +994,60 @@ function updateMyShipsCount() {
 
 function updateEnemyShipsCount() {
   document.getElementById('enemy-ships-count').textContent = MAX_SHIPS - oppHits.size;
+}
+
+// ─── Rematch ──────────────────────────────────────────────────────────────
+function requestRematch() {
+  myRematch = true;
+  document.getElementById('btn-rematch').disabled = true;
+  document.getElementById('rematch-status').style.display = 'block';
+  sendMsg({ type: 'rematch' });
+  if (oppRematch) startRematch();
+}
+
+function startRematch() {
+  // Reset all game state
+  myShips   = new Set();
+  myHits    = new Set();
+  myMisses  = new Set();
+  oppHits   = new Set();
+  oppMisses = new Set();
+  myTurn    = false;
+  isReady   = false;
+  oppReady  = false;
+  gameStarted = false;
+  lastOppCell = -1;
+  myRematch   = false;
+  oppRematch  = false;
+
+  // Hide overlay
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('btn-rematch').disabled = false;
+  document.getElementById('rematch-status').style.display = 'none';
+
+  // Reset ship counter dots
+  for (let i = 0; i < MAX_SHIPS; i++) {
+    document.getElementById(`dot-${i}`).classList.remove('filled');
+  }
+
+  // Reset ship counts display
+  document.getElementById('my-ships-count').textContent = MAX_SHIPS;
+  document.getElementById('enemy-ships-count').textContent = MAX_SHIPS;
+
+  // Rebuild grids and show setup panel again
+  buildGrid('own-grid', true);
+  buildGrid('opp-grid', false);
+
+  const setupPanel = document.getElementById('setup-panel');
+  setupPanel.style.display = '';
+  document.getElementById('ready-btn').disabled = true;
+  document.getElementById('ready-btn').textContent = '▶ BATTLE STATIONS';
+
+  document.getElementById('opp-label').classList.remove('active');
+  document.getElementById('own-label').classList.remove('active');
+
+  setStatus('Place your ships, then click BATTLE STATIONS', '');
+  showToast('New round — place your ships!');
 }
 
 // ─── Game Over ────────────────────────────────────────────────────────────
