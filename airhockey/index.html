@@ -439,8 +439,8 @@
     <div class="card-title">Join Room</div>
     <div class="input-group">
       <label>Room Code</label>
-      <input type="text" id="join-input" maxlength="6" placeholder="XXXXXX" autocomplete="off"
-        oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')joinRoom()">
+      <input type="text" id="join-input" maxlength="5" placeholder="XXXXX" autocomplete="off"
+        oninput="this.value=this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter')joinRoom()">
     </div>
     <div style="margin-top:12px;display:flex;gap:8px;">
       <button class="btn btn-outline" style="flex:1" onclick="backMenu()">← BACK</button>
@@ -520,7 +520,9 @@ let gameRunning = false;
 // ROOM SYSTEM (PeerJS WebRTC — works across devices)
 // =====================================================
 function genRoomId() {
-  return Math.random().toString(36).substring(2,8).toUpperCase();
+  let id = '';
+  for (let i = 0; i < 5; i++) id += Math.floor(Math.random() * 10);
+  return id;
 }
 
 function showCreate() {
@@ -535,7 +537,7 @@ function showCreate() {
 
   if (peer) { peer.destroy(); peer = null; }
 
-  peer = new Peer('airhockey-' + roomId);
+  peer = new Peer(roomId);
 
   peer.on('open', () => {
     document.getElementById('create-status').textContent = 'WAITING FOR OPPONENT...';
@@ -567,8 +569,8 @@ function showJoin() {
 }
 
 function joinRoom() {
-  const code = document.getElementById('join-input').value.trim().toUpperCase();
-  if (code.length < 4) { showJoinError('ENTER A VALID CODE'); return; }
+  const code = document.getElementById('join-input').value.trim();
+  if (code.length < 5) { showJoinError('ENTER A VALID CODE'); return; }
 
   document.getElementById('join-error').textContent = 'CONNECTING...';
   document.getElementById('join-error').className = 'status-msg status-wait';
@@ -581,7 +583,7 @@ function joinRoom() {
   peer = new Peer();
 
   peer.on('open', () => {
-    conn = peer.connect('airhockey-' + roomId, { reliable: false });
+    conn = peer.connect(roomId, { reliable: false });
 
     conn.on('open', () => {
       setupConnection();

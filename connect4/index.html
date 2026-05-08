@@ -978,9 +978,15 @@ function doRestart() {
 }
 
 // ── PeerJS Init ───────────────────────────────────────────
+function genNumericId() {
+  let id = '';
+  for (let i = 0; i < 5; i++) id += Math.floor(Math.random() * 10);
+  return id;
+}
+
 function initPeer() {
   setStatus('waiting', 'Connecting to signalling server…');
-  peer = new Peer({ debug: 0 });
+  peer = new Peer(genNumericId(), { debug: 0 });
 
   peer.on('open', id => {
     myIdEl.textContent = id;

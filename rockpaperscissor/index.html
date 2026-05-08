@@ -823,8 +823,13 @@ $('btn-create').addEventListener('click', () => {
   state.myName = $('player-name').value.trim() || 'Player 1';
   state.isHost = true;
 
-  // Create peer with random ID
-  state.peer = new Peer(undefined, { debug: 0 });
+  // Create peer with numeric 5-digit ID
+  function genNumericId() {
+    let id = '';
+    for (let i = 0; i < 5; i++) id += Math.floor(Math.random() * 10);
+    return id;
+  }
+  state.peer = new Peer(genNumericId(), { debug: 0 });
 
   state.peer.on('open', id => {
     state.myId = id;

@@ -765,7 +765,12 @@ function updateShipCounter() {
 function createRoom() {
   document.getElementById('btn-create').disabled = true;
   document.getElementById('btn-create').textContent = 'Initializing…';
-  peer = new Peer();
+  function genNumericId() {
+    let id = '';
+    for (let i = 0; i < 5; i++) id += Math.floor(Math.random() * 10);
+    return id;
+  }
+  peer = new Peer(genNumericId());
   peer.on('open', id => {
     document.getElementById('room-id-display').textContent = id;
     document.getElementById('room-id-section').style.display = 'block';
